@@ -28,16 +28,26 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.Optional;
+import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
@@ -46,6 +56,9 @@ import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JRParameter;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.type.OrientationEnum;
+import net.sf.jasperreports.engine.util.JRLoader;
+
 import org.openlmis.report.domain.JasperTemplate;
 import org.openlmis.report.domain.JasperTemplateParameter;
 import org.openlmis.report.domain.JasperTemplateParameterDependency;
@@ -72,6 +85,7 @@ public class JasperTemplateService {
   static final String REPORT_TYPE_PROPERTY = "reportType";
   private static final String DEFAULT_REPORT_TYPE = "Consistency Report";
   private static final String[] ALLOWED_FILETYPES = {"jrxml"};
+  private static final String CONFIG_PATH = "/config/reports/";
 
   @Autowired
   private JasperTemplateRepository jasperTemplateRepository;
@@ -189,6 +203,149 @@ public class JasperTemplateService {
       }
     }
     return map;
+  }
+
+  /**
+   * Gets locale for translation resource bundle parameters.
+   *
+   * @param userLocaleString the user locale string
+   * @return the locale bundle parameters
+   * @throws MalformedURLException the malformed url exception
+   */
+  public Map<String, Object> getLocaleBundleParameters(JasperReport parentReport,
+                                                       String userLocaleString)
+      throws MalformedURLException {
+    // validate if report requires resource bundle or not
+    String resourceBundleName = parentReport != null ? parentReport.getResourceBundle() : null;
+    if (resourceBundleName == null || resourceBundleName.trim().isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    Locale userLocale;
+    try {
+      // try to parse locale param else fallback to english
+      userLocale = new Locale.Builder().setLanguageTag(userLocaleString).build();
+    } catch (Exception e) {
+      userLocale = Locale.ENGLISH;
+    }
+    Map<String, Object> parameters = new HashMap<>();
+    File resourceBundleDir = new File(CONFIG_PATH + "resourceBundles");
+    if (resourceBundleDir.exists() && resourceBundleDir.isDirectory()) {
+      URL[] urls = {resourceBundleDir.toURI().toURL()};
+
+      try (URLClassLoader externalLoader = new URLClassLoader(urls)) {
+        ResourceBundle externalBundle = ResourceBundle
+            .getBundle("report_translations", userLocale, externalLoader);
+
+        parameters.put(JRParameter.REPORT_RESOURCE_BUNDLE, externalBundle);
+        parameters.put(JRParameter.REPORT_LOCALE, userLocale);
+      } catch (IOException | MissingResourceException e) {
+        // No translations bundle
+        return Collections.emptyMap();
+      }
+    }
+    return parameters;
+  }
+
+  /**
+   * Gets map subreport global header parameters.
+   *
+   * @param parentReport the parent report
+   * @return the map subreport global header parameters
+   * @throws JRException the jr exception
+   * @throws IOException the io exception
+   */
+  public Map<String, Object> getMapSubreportGlobalHeaderParameters(JasperReport parentReport)
+      throws JRException, IOException {
+    // validate if report requires header or not
+    boolean needsHeader = parentReport != null && parentReport.getParameters() != null
+        && Arrays.stream(parentReport.getParameters())
+        .anyMatch(param -> "headerTemplate".equals(param.getName()));
+    if (!needsHeader) {
+      return Collections.emptyMap();
+    }
+
+    File configDir = new File(CONFIG_PATH);
+    if (!configDir.exists() || !configDir.isDirectory()) {
+      // config directory does not exist
+      return Collections.emptyMap();
+    }
+
+    String headerName;
+    if (OrientationEnum.LANDSCAPE.equals(parentReport.getOrientationValue())) {
+      headerName = "GlobalHeaderLandscape";
+    } else if (OrientationEnum.PORTRAIT.equals(parentReport.getOrientationValue())) {
+      headerName = "GlobalHeaderPortrait";
+    } else {
+      // no orientation recognized
+      return Collections.emptyMap();
+    }
+
+    Map<String, Object> parameters = new HashMap<>();
+    File headerFile = new File(CONFIG_PATH + headerName + ".jrxml");
+    if (headerFile.exists()) {
+      try (InputStream is = Files.newInputStream(headerFile.toPath())) {
+        JasperReport globalHeader = JasperCompileManager.compileReport(is);
+        parameters.put("headerTemplate", globalHeader);
+      }
+    } else {
+      return Collections.emptyMap();
+    }
+
+    parameters.putAll(injectDynamicHeaderParams());
+    return parameters;
+  }
+
+  /**
+   * Inject dynamic header params map.
+   *
+   * @return the map
+   * @throws IOException the io exception
+   */
+  private Map<String, Object> injectDynamicHeaderParams() throws IOException {
+    Map<String, Object> parameters = new HashMap<>();
+    File configFile = new File(CONFIG_PATH + "header_config.properties");
+
+    if (configFile.exists()) {
+      Properties dynamicProps = new Properties();
+      try (InputStream is = Files.newInputStream(configFile.toPath())) {
+        dynamicProps.load(is);
+      }
+
+      for (String key : dynamicProps.stringPropertyNames()) {
+        String value = dynamicProps.getProperty(key);
+
+        if (key.endsWith("Image")) {
+          File imageFile = new File(CONFIG_PATH + value);
+          if (imageFile.exists()) {
+            parameters.put(key, imageFile.getAbsolutePath());
+          }
+        } else {
+          parameters.put(key, value);
+        }
+      }
+    }
+    return parameters;
+  }
+
+  /**
+   * Load report jasper report.
+   *
+   * @param jasperTemplate the jasper template
+   * @return the jasper report
+   * @throws ReportingException the reporting exception
+   */
+  public JasperReport loadReport(JasperTemplate jasperTemplate) throws ReportingException {
+    if (jasperTemplate != null) {
+      try (InputStream is = new ByteArrayInputStream(jasperTemplate.getData())) {
+        return (JasperReport) JRLoader.loadObject(is);
+      } catch (JRException ex) {
+        throw new ReportingException(ex, ERROR_REPORTING_FILE_INVALID);
+      } catch (IOException ex) {
+        throw new ReportingException(ex, ERROR_REPORTING_IO, ex.getMessage());
+      }
+    }
+    return null;
   }
 
   /**

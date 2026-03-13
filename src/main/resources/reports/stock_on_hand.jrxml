@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 6.20.5.final using JasperReports Library version 6.20.5-3efcf2e67f959db3888d79f73dde2dbd7acb4f8e  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CoreStockOnHand" pageWidth="842" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isFloatColumnFooter="true" uuid="1fd4208c-6840-4925-a1f6-5770e8fb3e97">
+<!-- Created with Jaspersoft Studio version 6.21.5.final using JasperReports Library version 6.20.6  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CoreStockOnHand" pageWidth="842" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isFloatColumnFooter="true" resourceBundle="reports/resourceBundles/report_translations" uuid="1fd4208c-6840-4925-a1f6-5770e8fb3e97">
 	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.1" value="pageHeader"/>
 	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.2" value="pageFooter"/>
 	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -56,6 +56,7 @@
 	<parameter name="userId" class="java.lang.String">
 		<property name="displayName" value="Delete from template parameters"/>
 	</parameter>
+	<parameter name="headerTemplate" class="net.sf.jasperreports.engine.JasperReport" isForPrompting="false"/>
 	<queryString>
 		<![CDATA[WITH RECURSIVE findChildZones AS (
   SELECT * FROM referencedata.geographic_zones WHERE name = $P{geographicZone}::varchar
@@ -212,34 +213,37 @@ GROUP BY
 		<band splitType="Stretch"/>
 	</background>
 	<title>
-		<band height="2" splitType="Stretch"/>
+		<band height="20" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</band>
 	</title>
 	<pageHeader>
 		<band height="150" splitType="Stretch">
+			<property name="com.jaspersoft.studio.unit.height" value="pixel"/>
 			<printWhenExpression><![CDATA[new Boolean($V{PAGE_NUMBER}.intValue()==1)]]></printWhenExpression>
 			<textField>
 				<reportElement x="0" y="80" width="230" height="20" uuid="c99c8f1c-d3d3-4020-8541-2da7e1a48466"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$P{geographicZone} != null ? "Geographic Zone" : ($P{facilityType} != null ? "Facility Type" : "Facility")]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$P{geographicZone} != null ? $R{report.column.geographicZone} : ($P{facilityType} != null ? $R{report.column.facilityType} : $R{report.column.facility})]]></textFieldExpression>
 			</textField>
-			<staticText>
-				<reportElement x="432" y="80" width="208" height="20" uuid="48e7b132-74de-44e8-9a1f-5ab8e86adeb5"/>
+			<textField>
+				<reportElement x="432" y="80" width="208" height="20" uuid="3c6c7766-7608-4c57-a67f-e157eba14d74"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font size="10" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Stock Date:]]></text>
-			</staticText>
-			<staticText>
-				<reportElement key="" x="640" y="80" width="161" height="20" uuid="4b505859-702c-4523-b9ee-567234bef054">
+				<textFieldExpression><![CDATA[$R{report.header.stockDate}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement key="" x="640" y="80" width="161" height="20" uuid="29e1a96f-0d18-4cc4-a84a-912969b21072">
 					<property name="com.jaspersoft.studio.unit.width" value="pixel"/>
 				</reportElement>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font size="10" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Report Date:]]></text>
-			</staticText>
+				<textFieldExpression><![CDATA[$R{report.header.reportDate}]]></textFieldExpression>
+			</textField>
 			<rectangle>
 				<reportElement x="0" y="53" width="801" height="27" backcolor="#C0C0C0" uuid="1d9034c0-77df-4000-920e-06594b2ebeb6">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
@@ -248,13 +252,6 @@ GROUP BY
 					<pen lineWidth="0.0"/>
 				</graphicElement>
 			</rectangle>
-			<staticText>
-				<reportElement x="0" y="53" width="801" height="28" forecolor="#FFFFFF" uuid="105ff9af-17db-4b74-a575-9ce26c6cc21f"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="24" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Stock On Hand]]></text>
-			</staticText>
 			<textField>
 				<reportElement x="0" y="100" width="230" height="20" uuid="a8565621-bd19-4b76-bd5e-280c405039c6"/>
 				<textFieldExpression><![CDATA[$P{geographicZone} != null ? $P{geographicZone} :
@@ -269,17 +266,34 @@ GROUP BY
 				<reportElement x="640" y="100" width="161" height="20" uuid="1a79bec9-bcf9-40b7-9530-86290dcd415f"/>
 				<textFieldExpression><![CDATA[new SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date())]]></textFieldExpression>
 			</textField>
-			<staticText>
-				<reportElement x="230" y="80" width="202" height="20" uuid="dca5e26f-c56e-4405-b824-e7f5516e0a7e"/>
+			<textField>
+				<reportElement x="230" y="80" width="202" height="20" uuid="f8f2b3ec-4fa4-4d2e-81be-f1f31dcb5dba"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font size="10" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Program]]></text>
-			</staticText>
+				<textFieldExpression><![CDATA[$R{report.column.program}]]></textFieldExpression>
+			</textField>
 			<textField>
 				<reportElement x="230" y="100" width="202" height="20" uuid="c88caf12-452e-4beb-846a-faadd85f251e"/>
 				<textFieldExpression><![CDATA[$P{program} != null ? $P{program} : "All"]]></textFieldExpression>
 			</textField>
+			<textField>
+				<reportElement x="0" y="53" width="800" height="27" forecolor="#FFFFFF" uuid="b22f9636-e18f-498b-95ad-14b3e27e7276"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="24" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{report.title.stockOnHand}]]></textFieldExpression>
+			</textField>
+			<subreport overflowType="Stretch">
+				<reportElement mode="Transparent" x="-20" y="-37" width="842" height="90" isPrintWhenDetailOverflows="true" uuid="b0d2398d-828c-4b5f-b5d3-ad4a1e9056c8">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="pixel"/>
+				</reportElement>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{headerTemplate}]]></subreportExpression>
+			</subreport>
 		</band>
 	</pageHeader>
 	<columnHeader>
@@ -292,8 +306,8 @@ GROUP BY
 					<pen lineWidth="0.0"/>
 				</graphicElement>
 			</rectangle>
-			<staticText>
-				<reportElement x="0" y="0" width="80" height="30" uuid="c9afe000-7909-4d5c-9026-f51a2676c8a9"/>
+			<textField>
+				<reportElement x="0" y="0" width="80" height="30" uuid="62ec1547-2381-4a0b-9daa-5a5dd3c1bdcb"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -304,10 +318,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Facility]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="320" y="0" width="70" height="30" uuid="74a64681-460b-4be8-b151-be5f9cf70633"/>
+				<textFieldExpression><![CDATA[$R{report.column.facility}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="320" y="0" width="70" height="30" uuid="ad5bfe64-ad2f-4135-98c9-19422ce293ec"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -318,10 +332,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Product Code]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="80" y="0" width="79" height="30" uuid="1def4702-0616-429b-b5aa-b5f1778dfc86"/>
+				<textFieldExpression><![CDATA[$R{report.column.productCode}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="80" y="0" width="79" height="30" uuid="9905daa1-61be-4f1b-96c2-4421aa897ec3"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -332,10 +346,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Geographic Zone]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="159" y="0" width="81" height="30" uuid="d66daf14-80ce-4234-bf97-bddbb62b902b"/>
+				<textFieldExpression><![CDATA[$R{report.column.geographicZone}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="159" y="0" width="81" height="30" uuid="4322400a-f8bd-42b5-a2ca-7c855ed30cc7"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -346,10 +360,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Facility Type]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="240" y="0" width="80" height="30" uuid="db05e5bd-2535-4de6-85ad-1952eed636dd"/>
+				<textFieldExpression><![CDATA[$R{report.column.facilityType}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="240" y="0" width="80" height="30" uuid="31a2348e-58c9-45cd-8e0c-821b47fcb882"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -360,10 +374,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Product]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="500" y="0" width="80" height="30" uuid="4cd2a7bb-4661-496c-935b-5027dea9f202"/>
+				<textFieldExpression><![CDATA[$R{report.column.product}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="500" y="0" width="80" height="30" uuid="9cc5c9c1-9d7c-458d-b257-e547c268af13"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -374,10 +388,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Supplier]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="390" y="0" width="48" height="30" uuid="4cd2a7bb-4661-496c-935b-5027dea9f202"/>
+				<textFieldExpression><![CDATA[$R{report.column.supplier}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="390" y="0" width="48" height="30" uuid="88881c0b-34a4-47e9-8f3d-e2121dac01f7"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -388,10 +402,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Lot Code]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="438" y="0" width="62" height="30" uuid="4cd2a7bb-4661-496c-935b-5027dea9f202"/>
+				<textFieldExpression><![CDATA[$R{report.column.lotCode}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="438" y="0" width="62" height="30" uuid="cd4cc076-9bb4-4467-9b4a-0d8604f196c4"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -402,10 +416,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Program]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="580" y="0" width="60" height="30" uuid="df0df775-dc98-42ef-8365-953232c5ce03"/>
+				<textFieldExpression><![CDATA[$R{report.column.program}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="580" y="0" width="60" height="30" uuid="aab578c6-7e34-4109-8dde-54564c1f135c"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -416,10 +430,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Expiration Date]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="640" y="0" width="60" height="30" uuid="1a7908df-eb69-4140-8744-5b4d49d71352"/>
+				<textFieldExpression><![CDATA[$R{report.column.expiryDate}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="640" y="0" width="60" height="30" uuid="e17615fe-ca08-47af-a25e-c43093bb56ba"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -430,10 +444,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Available Stock]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="700" y="0" width="51" height="30" uuid="5f86cae2-0c1c-452f-b9da-9d53d849656a"/>
+				<textFieldExpression><![CDATA[$R{report.column.availableStock}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="700" y="0" width="51" height="30" uuid="dc81e407-048c-4716-8281-2c4054681e6a"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -444,10 +458,10 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Net Content]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="751" y="0" width="50" height="30" uuid="5f86cae2-0c1c-452f-b9da-9d53d849656a"/>
+				<textFieldExpression><![CDATA[$R{report.column.netContent}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="751" y="0" width="50" height="30" uuid="13ba0178-20f6-4ae2-acbe-70391bc49429"/>
 				<box leftPadding="2" bottomPadding="1">
 					<pen lineWidth="1.0" lineColor="#80C7E8"/>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -458,8 +472,8 @@ GROUP BY
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[VVM Status]]></text>
-			</staticText>
+				<textFieldExpression><![CDATA[$R{report.column.vvmStatus}]]></textFieldExpression>
+			</textField>
 		</band>
 	</columnHeader>
 	<detail>
@@ -610,21 +624,21 @@ GROUP BY
 			<textField evaluationTime="Master">
 				<reportElement x="701" y="3" width="100" height="30" uuid="f1db7f67-876a-48ce-a6d2-2fdf4b475085"/>
 				<textElement textAlignment="Right" verticalAlignment="Top"/>
-				<textFieldExpression><![CDATA["Page " + $V{MASTER_CURRENT_PAGE} + " of " + $V{MASTER_TOTAL_PAGES}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$R{report.controls.page} + $V{MASTER_CURRENT_PAGE} + $R{report.controls.pageOf} + $V{MASTER_TOTAL_PAGES}]]></textFieldExpression>
 			</textField>
 		</band>
 	</pageFooter>
 	<summary>
 		<band height="52">
-			<staticText>
-				<reportElement positionType="FixRelativeToBottom" x="0" y="0" width="800" height="51" uuid="d5ac5426-34dd-41c4-acde-4510f82e3add">
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="0" y="0" width="800" height="51" uuid="4385a89d-20a0-44c2-ad77-c2708b739727">
 					<printWhenExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()==0)]]></printWhenExpression>
 				</reportElement>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="12" isBold="true"/>
 				</textElement>
-				<text><![CDATA[There is no data for the indicated parameters.]]></text>
-			</staticText>
+				<textFieldExpression><![CDATA[$R{report.footer.noDataForParameters}]]></textFieldExpression>
+			</textField>
 		</band>
 	</summary>
 </jasperReport>

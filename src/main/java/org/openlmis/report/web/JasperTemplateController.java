@@ -18,6 +18,8 @@ package org.openlmis.report.web;
 import static org.apache.commons.lang3.BooleanUtils.isNotFalse;
 import static org.openlmis.report.i18n.JasperMessageKeys.ERROR_JASPER_TEMPLATE_NOT_FOUND;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -26,7 +28,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import javax.servlet.http.HttpServletRequest;
+
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperReport;
 
 import org.openlmis.report.domain.JasperTemplate;
 import org.openlmis.report.dto.JasperTemplateDto;
@@ -52,6 +58,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -178,7 +185,8 @@ public class JasperTemplateController extends BaseController {
   @ResponseBody
   public ResponseEntity<byte[]> generateReport(
       HttpServletRequest request, @PathVariable("id") UUID templateId,
-      @PathVariable("format") String format) throws JasperReportViewException {
+      @PathVariable("format") String format, @RequestParam(defaultValue = "en") String lang)
+      throws JasperReportViewException {
     JasperTemplate template = jasperTemplateRepository.findById(templateId)
         .orElseThrow(() -> new NotFoundMessageException(
             new Message(ERROR_JASPER_TEMPLATE_NOT_FOUND, templateId)));
@@ -197,6 +205,18 @@ public class JasperTemplateController extends BaseController {
         request, template
     );
     map.putAll(jasperTemplateService.mapReportImagesToTemplate(template));
+
+    try {
+      JasperReport templateReport = jasperTemplateService.loadReport(template);
+      map.putAll(jasperTemplateService.getLocaleBundleParameters(templateReport, lang));
+      map.putAll(jasperTemplateService.getMapSubreportGlobalHeaderParameters(templateReport));
+    } catch (ReportingException e) {
+      LOGGER.debug("Cannot compile template {}", template.getName());
+    } catch (MalformedURLException e) {
+      LOGGER.debug("Cannot load translation bundle for {}", template.getName());
+    } catch (JRException | IOException ex) {
+      LOGGER.debug("Cannot load GlobalHeaderTemplate for {}", template.getName());
+    }
 
     map.put("format", format);
     map.put("dateTimeFormat", dateTimeFormat);

@@ -86,7 +86,7 @@ check {
 assemble {
     dependsOn ramlToHtml
     dependsOn copyRamlHtmlToBuild
-    dependsOn copyConsulRegistrationToBuild
+    dependsOn prepareConsulBuild
     dependsOn jacocoTestReport
 }
 
@@ -94,6 +94,6 @@ build {
     dependsOn check
     dependsOn ramlToHtml
     dependsOn copyRamlHtmlToBuild
-    dependsOn copyConsulRegistrationToBuild
+    dependsOn prepareConsulBuild
     dependsOn jacocoTestReport
 }

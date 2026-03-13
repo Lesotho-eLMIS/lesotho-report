@@ -1,5 +1,14 @@
-Upcoming Version (WIP)
+Upcoming Version / (WIP)
 ==================
+
+Improvements:
+* Stabilized consul registration and health checks
+
+1.5.0 / 2025-11-27
+==================
+
+Changes:
+* Upgrade PostgreSQL JDBC driver to 42.6.2 for PostgreSQL 14 compatibility
 
 1.4.0 / 2025-03-31
 =================
