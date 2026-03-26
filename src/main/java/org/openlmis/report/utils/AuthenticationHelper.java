@@ -45,7 +45,14 @@ public class AuthenticationHelper {
    * @throws AuthenticationMessageException if user cannot be found.
    */
   public UserDto getCurrentUser() {
-    UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    // UUID userId = (UUID)
+    // SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    // Get the principal as an Object first
+    Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+    // Safely convert it to a String, then parse it into a UUID
+    UUID userId = java.util.UUID.fromString(principal.toString());
+
     UserDto user = userReferenceDataService.findOne(userId);
 
     if (user == null) {
@@ -56,7 +63,8 @@ public class AuthenticationHelper {
   }
 
   /**
-   * Method returns a correct right and fetches his data from reference-data service.
+   * Method returns a correct right and fetches his data from reference-data
+   * service.
    *
    * @param name right name
    * @return RightDto entity of right.
