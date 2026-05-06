@@ -149,6 +149,30 @@ resourceTypes:
 
 /api:
   /reports:
+      /generate:
+          displayName: Generate Report with Custom Datasource
+          post:
+              is: [ secured ]
+              description: Generates a Jasper report using a provided JSON data source and template payload.
+              body:
+                  application/json:
+              responses:
+                  200:
+                      body:
+                          application/pdf:
+                          text/csv:
+                          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+                          text/html:
+                  403:
+                      headers:
+                          Keep-Alive:
+                      body:
+                          application/json:
+                              schema: localizedMessage
+                  500:
+                      body:
+                          application/json:
+                              schema: localizedMessage
       /requisitions/{id}/print:
         uriParameters:
             id:

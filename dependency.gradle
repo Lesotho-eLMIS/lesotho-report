@@ -21,8 +21,9 @@ dependencies {
     compile "org.openlmis:openlmis-service-util:3.0.0"
 
     compile "commons-codec:commons-codec"
-    compile "commons-io:commons-io:2.4"
+    compile "commons-io:commons-io:2.7"
     compile "net.sf.jasperreports:jasperreports:6.5.1"
+    compile "net.sf.jasperreports:jasperreports-fonts:6.0.0"
     compile "org.apache.commons:commons-lang3"
     compile "org.flywaydb:flyway-core"
     compile 'org.javers:javers-spring-boot-starter-sql:5.13.2'
