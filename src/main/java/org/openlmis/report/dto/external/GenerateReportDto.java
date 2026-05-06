@@ -13,14 +13,24 @@
  * http://www.gnu.org/licenses.  For additional information contact info@OpenLMIS.org.
  */
 
-package org.openlmis.report.exception;
+package org.openlmis.report.dto.external;
 
-public class JasperReportViewException extends BaseLocalizedException {
-  public JasperReportViewException(String messageKey, String... params) {
-    super(messageKey, params);
-  }
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-  public JasperReportViewException(Throwable cause, String messageKey, String... params) {
-    super(cause, messageKey, params);
-  }
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode
+@ToString
+public final class GenerateReportDto {
+  private String name;
+  private byte[] template;
+  private Map<String, Object> params;
 }

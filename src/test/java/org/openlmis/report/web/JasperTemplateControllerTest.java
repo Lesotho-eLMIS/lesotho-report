@@ -117,7 +117,7 @@ public class JasperTemplateControllerTest {
         .thenReturn(new HashMap<>());
     when(jasperTemplateRepository.findById(jasperTemplate.getId()))
         .thenReturn(Optional.of(jasperTemplate));
-    when(jasperReportsViewService.getJasperReportsView(any(), any()))
+    when(jasperReportsViewService.getJasperReportsView((byte[]) any(), any()))
         .thenReturn(new byte[] {0, 1, 2, 3, 4});
     when(authenticationHelper.getCurrentUser())
         .thenReturn(currentUser);

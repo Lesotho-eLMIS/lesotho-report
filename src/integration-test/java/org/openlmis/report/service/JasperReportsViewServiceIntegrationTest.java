@@ -77,7 +77,7 @@ public class JasperReportsViewServiceIntegrationTest {
   @Test(expected = JasperReportViewException.class)
   public void shouldThrowJasperReportViewExceptionInsteadOfNullPointerException()
       throws JasperReportViewException {
-    service.getJasperReportsView(null, null);
+    service.getJasperReportsView((byte[]) null, null);
   }
 
   @Test (expected = JasperReportViewException.class)

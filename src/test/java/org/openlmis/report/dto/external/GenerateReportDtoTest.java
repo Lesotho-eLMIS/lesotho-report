@@ -13,14 +13,19 @@
  * http://www.gnu.org/licenses.  For additional information contact info@OpenLMIS.org.
  */
 
-package org.openlmis.report.exception;
+package org.openlmis.report.dto.external;
 
-public class JasperReportViewException extends BaseLocalizedException {
-  public JasperReportViewException(String messageKey, String... params) {
-    super(messageKey, params);
-  }
+import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
+import org.junit.Test;
 
-  public JasperReportViewException(Throwable cause, String messageKey, String... params) {
-    super(cause, messageKey, params);
+public class GenerateReportDtoTest {
+
+  @Test
+  public void equalsContract() {
+    EqualsVerifier
+        .forClass(GenerateReportDto.class)
+        .suppress(Warning.NONFINAL_FIELDS)
+        .verify();
   }
 }

@@ -208,7 +208,7 @@ public class JasperTemplateController extends BaseController {
 
     try {
       JasperReport templateReport = jasperTemplateService.loadReport(template);
-      map.putAll(jasperTemplateService.getLocaleBundleParameters(templateReport, lang));
+      map.putAll(jasperTemplateService.getLocaleBundleParameters(lang));
       map.putAll(jasperTemplateService.getMapSubreportGlobalHeaderParameters(templateReport));
     } catch (ReportingException e) {
       LOGGER.debug("Cannot compile template {}", template.getName());
