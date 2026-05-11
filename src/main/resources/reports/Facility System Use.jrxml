@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Facility_System_Use_Detail" pageWidth="1684" pageHeight="595" columnWidth="1644" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail" uuid="aa100000-0000-0000-0000-000000000001">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
+	
+	<!-- Clean Excel/CSV Export Properties -->
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.2" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.2" value="pageFooter"/>
+
+	<!-- Standardized OpenLMIS Parameters -->
+	<parameter name="facility" class="java.lang.String" nestedType="java.lang.String">
+		<property name="displayName" value="Facility"/>
+		<property name="required" value="false"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+
+	<queryString language="SQL">
+		<![CDATA[WITH stockmanagement AS (
+    SELECT
+        fac.name AS facility,
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Consumed' OR stclire_pili.name = 'Consumed') AS "Consumed",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Beginning Balance Insufficiency' OR stclire_pili.name = 'Beginning Balance Insufficiency') AS "Beginning Balance Insufficiency",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Facility Return' OR stclire_pili.name = 'Facility Return') AS "Facility Return",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Stolen' OR stclire_pili.name = 'Stolen') AS "Stolen",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Beginning Balance Excess' OR stclire_pili.name = 'Beginning Balance Excess') AS "Beginning Balance Excess",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Lost' OR stclire_pili.name = 'Lost') AS "Lost",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'POD Query' OR stclire_pili.name = 'POD Query') AS "POD Query",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Damage' OR stclire_pili.name = 'Damage') AS "Damage",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Expired' OR stclire_pili.name = 'Expired') AS "Expired",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Unusable' OR stclire_pili.name = 'Unusable') AS "Unusable",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Degraded' OR stclire_pili.name = 'Degraded') AS "Degraded",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Unpack Kit' OR stclire_pili.name = 'Unpack Kit') AS "Unpack Kit",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Transfer In' OR stclire_pili.name = 'Transfer In') AS "Transfer In",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Unpacked From Kit' OR stclire_pili.name = 'Unpacked From Kit') AS "Unpacked From Kit",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Transfer Out' OR stclire_pili.name = 'Transfer Out') AS "Transfer Out",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Cold Chain Failure' OR stclire_pili.name = 'Cold Chain Failure') AS "Cold Chain Failure",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Passed Open-vial Time Limit' OR stclire_pili.name = 'Passed Open-vial Time Limit') AS "Passed Open-vial Time Limit",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Recalled' OR stclire_pili.name = 'Recalled') AS "Recalled",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Over Supply' OR stclire_pili.name = 'Over Supply') AS "Over Supply",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Receipts' OR stclire_pili.name = 'Receipts') AS "Receipts",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Expiry' OR stclire_pili.name = 'Expiry') AS "Expiry",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Damaged' OR stclire_pili.name = 'Damaged') AS "Damaged",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Internal Transfer Out' OR stclire_pili.name = 'Internal Transfer Out') AS "Internal Transfer Out",
+        MAX(se.processeddate) FILTER (WHERE stclire.name = 'Internal Transfer In' OR stclire_pili.name = 'Internal Transfer In') AS "Internal Transfer In"
+    FROM referencedata.facilities fac
+    LEFT JOIN stockmanagement.stock_events se ON se.facilityid::uuid = fac.id
+    LEFT JOIN stockmanagement.stock_event_line_items seli ON se.id = seli.stockeventid
+    LEFT JOIN stockmanagement.stock_card_line_item_reasons stclire ON stclire.id = seli.reasonid::uuid
+    LEFT JOIN stockmanagement.physical_inventory_line_item_adjustments pili ON seli.id = pili.stockeventlineitemid
+    LEFT JOIN stockmanagement.stock_card_line_item_reasons stclire_pili ON pili.reasonid::uuid = stclire_pili.id
+    GROUP BY fac.name
+),
+requisitions AS (
+    SELECT
+        fac.name AS facility,
+        MAX(rsc.createddate) AS "requisitions"
+    FROM referencedata.facilities fac
+    LEFT JOIN requisition.requisitions r ON r.facilityid = fac.id
+    LEFT JOIN requisition.status_changes rsc ON rsc.requisitionid = r.id
+    WHERE rsc.status IN ('INITIATED','SUBMITTED','AUTHORIZED')
+    GROUP BY fac.name
+),
+fulfillment AS (
+    SELECT
+        fac.name AS facility,
+        GREATEST(MAX(o.createddate::timestamp), MAX(ship.shippeddate::timestamp)) AS "fulfillment"
+    FROM referencedata.facilities fac
+    LEFT JOIN fulfillment.orders o ON o.facilityid::uuid = fac.id
+    LEFT JOIN fulfillment.shipments ship ON ship.orderid = o.id
+    GROUP BY fac.name
+)
+SELECT
+    st.facility,
+    st."Consumed",
+    st."Beginning Balance Insufficiency",
+    st."Facility Return",
+    st."Stolen",
+    st."Beginning Balance Excess",
+    st."Lost",
+    st."POD Query",
+    st."Damage",
+    st."Expired",
+    st."Unusable",
+    st."Degraded",
+    st."Unpack Kit",
+    st."Transfer In",
+    st."Unpacked From Kit",
+    st."Transfer Out",
+    st."Cold Chain Failure",
+    st."Passed Open-vial Time Limit",
+    st."Recalled",
+    st."Over Supply",
+    st."Receipts",
+    st."Expiry",
+    st."Damaged",
+    st."Internal Transfer Out",
+    st."Internal Transfer In",
+    r.requisitions,
+    f.fulfillment
+FROM stockmanagement st
+JOIN requisitions r ON st.facility = r.facility
+JOIN fulfillment f ON f.facility = st.facility
+WHERE (
+    CAST($P{facility} AS VARCHAR) IS NULL
+    OR st.facility = CAST($P{facility} AS VARCHAR)
+)
+ORDER BY st.facility]]>
+	</queryString>
+	<field name="facility" class="java.lang.String"/>
+	<field name="Consumed" class="java.sql.Timestamp"/>
+	<field name="Beginning Balance Insufficiency" class="java.sql.Timestamp"/>
+	<field name="Facility Return" class="java.sql.Timestamp"/>
+	<field name="Stolen" class="java.sql.Timestamp"/>
+	<field name="Beginning Balance Excess" class="java.sql.Timestamp"/>
+	<field name="Lost" class="java.sql.Timestamp"/>
+	<field name="POD Query" class="java.sql.Timestamp"/>
+	<field name="Damage" class="java.sql.Timestamp"/>
+	<field name="Expired" class="java.sql.Timestamp"/>
+	<field name="Unusable" class="java.sql.Timestamp"/>
+	<field name="Degraded" class="java.sql.Timestamp"/>
+	<field name="Unpack Kit" class="java.sql.Timestamp"/>
+	<field name="Transfer In" class="java.sql.Timestamp"/>
+	<field name="Unpacked From Kit" class="java.sql.Timestamp"/>
+	<field name="Transfer Out" class="java.sql.Timestamp"/>
+	<field name="Cold Chain Failure" class="java.sql.Timestamp"/>
+	<field name="Passed Open-vial Time Limit" class="java.sql.Timestamp"/>
+	<field name="Recalled" class="java.sql.Timestamp"/>
+	<field name="Over Supply" class="java.sql.Timestamp"/>
+	<field name="Receipts" class="java.sql.Timestamp"/>
+	<field name="Expiry" class="java.sql.Timestamp"/>
+	<field name="Damaged" class="java.sql.Timestamp"/>
+	<field name="Internal Transfer Out" class="java.sql.Timestamp"/>
+	<field name="Internal Transfer In" class="java.sql.Timestamp"/>
+	<field name="requisitions" class="java.sql.Timestamp"/>
+	<field name="fulfillment" class="java.sql.Timestamp"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="60" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="15" width="1644" height="30" uuid="aa100001-0000-0000-0000-000000000001"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility System Use - Report]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="50" height="20" uuid="aa100040-0000-0000-0000-000000000040"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="50" y="5" width="200" height="20" uuid="aa100041-0000-0000-0000-000000000041"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{facility} != null ? $P{facility} : "All Facilities"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1464" y="5" width="100" height="20" uuid="aa100042-0000-0000-0000-000000000042"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="1564" y="5" width="80" height="20" uuid="aa100042-0000-0000-0000-000000000047"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="120" height="40" backcolor="#D3D3D3" uuid="aa200001-0000-0000-0000-000000000001"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="120" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200002-0000-0000-0000-000000000002"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Consumed]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="180" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200003-0000-0000-0000-000000000003"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Beg. Bal. Insufficiency]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="240" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200004-0000-0000-0000-000000000004"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility Return]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="300" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200005-0000-0000-0000-000000000005"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Stolen]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="360" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200006-0000-0000-0000-000000000006"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Beg. Bal. Excess]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="420" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200007-0000-0000-0000-000000000007"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Lost]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="480" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200008-0000-0000-0000-000000000008"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[POD Query]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="540" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200009-0000-0000-0000-000000000009"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Damage]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="600" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200010-0000-0000-0000-000000000010"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Expired]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="660" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200011-0000-0000-0000-000000000011"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Unusable]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="720" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200012-0000-0000-0000-000000000012"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Degraded]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="780" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200013-0000-0000-0000-000000000013"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Unpack Kit]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="840" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200014-0000-0000-0000-000000000014"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Transfer In]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="900" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200015-0000-0000-0000-000000000015"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Unpacked From Kit]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="960" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200016-0000-0000-0000-000000000016"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Transfer Out]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1020" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200017-0000-0000-0000-000000000017"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cold Chain Failure]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1080" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200018-0000-0000-0000-000000000018"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Passed Open-vial Limit]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1140" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200019-0000-0000-0000-000000000019"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Recalled]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1200" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200020-0000-0000-0000-000000000020"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Over Supply]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1260" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200021-0000-0000-0000-000000000021"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Receipts]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1320" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200022-0000-0000-0000-000000000022"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Expiry]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1380" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200023-0000-0000-0000-000000000023"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Damaged]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1440" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200024-0000-0000-0000-000000000024"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Int. Transfer Out]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1500" y="0" width="60" height="40" backcolor="#D3D3D3" uuid="aa200025-0000-0000-0000-000000000025"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Int. Transfer In]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1560" y="0" width="42" height="40" backcolor="#AAAAFF" uuid="aa200026-0000-0000-0000-000000000026"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Requisitions]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1602" y="0" width="42" height="40" backcolor="#AAFFAA" uuid="aa200027-0000-0000-0000-000000000027"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fulfillment]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="120" height="20" uuid="aa300001-0000-0000-0000-000000000001"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facility}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="120" y="0" width="60" height="20" uuid="aa300002-0000-0000-0000-000000000002"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Consumed} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Consumed})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="180" y="0" width="60" height="20" uuid="aa300003-0000-0000-0000-000000000003"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Beginning Balance Insufficiency} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Beginning Balance Insufficiency})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="240" y="0" width="60" height="20" uuid="aa300004-0000-0000-0000-000000000004"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Facility Return} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Facility Return})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="60" height="20" uuid="aa300005-0000-0000-0000-000000000005"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Stolen} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Stolen})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="360" y="0" width="60" height="20" uuid="aa300006-0000-0000-0000-000000000006"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Beginning Balance Excess} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Beginning Balance Excess})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="420" y="0" width="60" height="20" uuid="aa300007-0000-0000-0000-000000000007"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Lost} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Lost})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="480" y="0" width="60" height="20" uuid="aa300008-0000-0000-0000-000000000008"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POD Query} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{POD Query})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="540" y="0" width="60" height="20" uuid="aa300009-0000-0000-0000-000000000009"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Damage} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Damage})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="600" y="0" width="60" height="20" uuid="aa300010-0000-0000-0000-000000000010"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Expired} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Expired})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="660" y="0" width="60" height="20" uuid="aa300011-0000-0000-0000-000000000011"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Unusable} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Unusable})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="720" y="0" width="60" height="20" uuid="aa300012-0000-0000-0000-000000000012"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Degraded} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Degraded})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="780" y="0" width="60" height="20" uuid="aa300013-0000-0000-0000-000000000013"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Unpack Kit} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Unpack Kit})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="840" y="0" width="60" height="20" uuid="aa300014-0000-0000-0000-000000000014"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Transfer In} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Transfer In})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="900" y="0" width="60" height="20" uuid="aa300015-0000-0000-0000-000000000015"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Unpacked From Kit} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Unpacked From Kit})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="960" y="0" width="60" height="20" uuid="aa300016-0000-0000-0000-000000000016"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Transfer Out} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Transfer Out})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1020" y="0" width="60" height="20" uuid="aa300017-0000-0000-0000-000000000017"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Cold Chain Failure} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Cold Chain Failure})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1080" y="0" width="60" height="20" uuid="aa300018-0000-0000-0000-000000000018"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Passed Open-vial Time Limit} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Passed Open-vial Time Limit})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1140" y="0" width="60" height="20" uuid="aa300019-0000-0000-0000-000000000019"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Recalled} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Recalled})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1200" y="0" width="60" height="20" uuid="aa300020-0000-0000-0000-000000000020"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Over Supply} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Over Supply})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1260" y="0" width="60" height="20" uuid="aa300021-0000-0000-0000-000000000021"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Receipts} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Receipts})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1320" y="0" width="60" height="20" uuid="aa300022-0000-0000-0000-000000000022"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Expiry} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Expiry})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1380" y="0" width="60" height="20" uuid="aa300023-0000-0000-0000-000000000023"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Damaged} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Damaged})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1440" y="0" width="60" height="20" uuid="aa300024-0000-0000-0000-000000000024"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Internal Transfer Out} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Internal Transfer Out})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1500" y="0" width="60" height="20" uuid="aa300025-0000-0000-0000-000000000025"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Internal Transfer In} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{Internal Transfer In})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1560" y="0" width="42" height="20" uuid="aa300026-0000-0000-0000-000000000026"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{requisitions} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{requisitions})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1602" y="0" width="42" height="20" uuid="aa300027-0000-0000-0000-000000000027"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fulfillment} == null ? "-" : new java.text.SimpleDateFormat("dd/MM/yy").format($F{fulfillment})]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="1464" y="0" width="100" height="20" uuid="aa300060-0000-0000-0000-000000000060"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="1564" y="0" width="80" height="20" uuid="aa300060-0000-0000-0000-000000000061"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="50" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="1644" height="50" uuid="d5ac5426-34dd-41c4-acde-4510f82e3add">
+					<printWhenExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()==0)]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[There is no data for the indicated parameters.]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>
