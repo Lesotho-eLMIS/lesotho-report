@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Stockout_Report" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail" uuid="bb100000-0000-0000-0000-000000000001">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Data_Verification" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail" uuid="fc08dd64-6d0b-4c8d-a43c-1b15854c81f8">
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
 	
@@ -20,241 +20,156 @@
 		<property name="displayName" value="End Date"/>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
+	<parameter name="program" class="java.lang.String" nestedType="java.lang.String">
+		<property name="displayName" value="Program"/>
+		<property name="required" value="false"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
 	<parameter name="facility" class="java.lang.String" nestedType="java.lang.String">
 		<property name="displayName" value="Facility"/>
 		<property name="required" value="false"/>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
+	
+	<!-- Internal Security Parameter (Do not display in UI) -->
+	<parameter name="userId" class="java.lang.String">
+		<property name="displayName" value="Delete from template parameters"/>
+	</parameter>
 
 	<queryString language="SQL">
-		<![CDATA[WITH daily AS (
-    SELECT
-        dis.name                        AS district_name,
-        fac.id                          AS facility_id,
-        fac.name                        AS facility_name,
-        facty.name                      AS facility_type_name,
-        prog.id                         AS program_id,
-        prog.name                       AS program_name,
-        ord.id                          AS orderable_id,
-        ord.fullproductname             AS product_name,
-        stcli.occurreddate::date        AS transaction_date,
-        SUM(
-            CASE
-                WHEN COALESCE(stclire.reasontype, 'CREDIT') = 'CREDIT' THEN stcli.quantity
-                WHEN stclire.reasontype = 'DEBIT' THEN -stcli.quantity
-                ELSE 0
-            END
-        ) AS daily_movement_qty
-    FROM stockmanagement.stock_card_line_items stcli
-    LEFT JOIN stockmanagement.stock_card_line_item_reasons stclir
-        ON stcli.reasonid = stclir.id
-    JOIN stockmanagement.stock_cards stc
-        ON stcli.stockcardid = stc.id
-    JOIN referencedata.orderables ord
-        ON stc.orderableid = ord.id
-    JOIN referencedata.facilities fac
-        ON stc.facilityid = fac.id
-    LEFT JOIN referencedata.geographic_zones zone_fac
-        ON zone_fac.id = fac.geographiczoneid
-    LEFT JOIN referencedata.geographic_zones dis
-        ON zone_fac.parentid = dis.id
-    LEFT JOIN referencedata.facility_types facty
-        ON fac.typeid = facty.id
-    LEFT JOIN referencedata.program_orderables po
-        ON po.orderableid = ord.id
-    LEFT JOIN referencedata.programs prog
-        ON po.programid = prog.id
-    WHERE (
-        $P{startDate} IS NULL OR $P{startDate} = ''
-        OR stcli.occurreddate >= TO_TIMESTAMP(NULLIF($P{startDate}, ''), 'YYYY-MM-DD')
-    )
-    AND (
-        $P{endDate} IS NULL OR $P{endDate} = ''
-        OR stcli.occurreddate < (TO_TIMESTAMP(NULLIF($P{endDate}, ''), 'YYYY-MM-DD') + INTERVAL '1 day')
-    )
-    AND (
-        $P{facility} IS NULL OR $P{facility} = ''
-        OR fac.name = $P{facility}
-    )
-    GROUP BY
-        dis.name,
-        fac.id, fac.name, facty.name,
-        prog.id, prog.name,
-        ord.id, ord.fullproductname,
-        stcli.occurreddate::date
-),
-balances AS (
-    SELECT
-        d.*,
-        SUM(d.daily_movement_qty) OVER (
-            PARTITION BY d.facility_id, d.orderable_id
-            ORDER BY d.transaction_date
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) AS running_balance
-    FROM daily d
-),
-marked AS (
-    SELECT
-        b.*,
-        LAG(b.running_balance) OVER (
-            PARTITION BY b.facility_id, b.orderable_id
-            ORDER BY b.transaction_date
-        ) AS prev_balance,
-        (b.running_balance <= 0) AS is_stockout
-    FROM balances b
-),
-episodes AS (
-    SELECT
-        m.*,
-        CASE
-            WHEN m.is_stockout = TRUE
-             AND COALESCE(m.prev_balance > 0, TRUE) = TRUE
-            THEN 1 ELSE 0
-        END AS is_start
-    FROM marked m
-),
-episode_id AS (
-    SELECT
-        e.*,
-        SUM(e.is_start) OVER (
-            PARTITION BY e.facility_id, e.orderable_id
-            ORDER BY e.transaction_date
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) AS stockout_group
-    FROM episodes e
-    WHERE e.is_stockout = TRUE
-),
-stockout_summary AS (
-    SELECT
-        district_name,
-        facility_id,
-        facility_name,
-        facility_type_name,
-        program_id,
-        program_name,
-        orderable_id,
-        product_name,
-        MIN(transaction_date)   AS stockout_start_date,
-        MAX(transaction_date)   AS last_stockout_date,
-        MIN(running_balance)    AS min_balance_in_stockout,
-        stockout_group
-    FROM episode_id
-    GROUP BY
-        district_name,
-        facility_id,
-        facility_name,
-        facility_type_name,
-        program_id,
-        program_name,
-        orderable_id,
-        product_name,
-        stockout_group
-),
-final AS (
-    SELECT
-        s.*,
-        (
-            SELECT MIN(b2.transaction_date)
-            FROM balances b2
-            WHERE b2.facility_id   = s.facility_id
-              AND b2.orderable_id  = s.orderable_id
-              AND b2.transaction_date > s.last_stockout_date
-              AND b2.running_balance > 0
-        ) AS stockout_end_date
-    FROM stockout_summary s
+		<![CDATA[
+WITH user_rights AS (
+    SELECT facilityid, programid
+    FROM referencedata.right_assignments
+    WHERE rightname = 'STOCK_CARDS_VIEW'
+    AND userId = $P{userId}::uuid
 )
 SELECT
-    district_name,
-    facility_name,
-    facility_type_name,
-    program_name,
-    product_name,
-    stockout_start_date,
-    stockout_end_date,
-    GREATEST(
-        (COALESCE(stockout_end_date, CURRENT_DATE) - stockout_start_date)::int,
-        0
-    ) AS days_out_of_stock,
-    min_balance_in_stockout AS running_balance
-FROM final
-ORDER BY district_name, facility_name, program_name, product_name, stockout_start_date]]>
+    fac.name AS "Facility",
+    dis.name AS "District",
+    facty.name AS "Facility Type",
+    facop.name AS "Ownership",
+    prog.name AS "Program",
+    ord.fullproductname AS "Product",
+    lots.lotcode AS "Batch Number",
+    stcli.quantity AS "Quantity",
+    stclir.name AS "Reason",
+    stclir.reasontype AS "Reason Type",
+    TO_CHAR(stcli.occurreddate, 'DD Month YYYY') AS "Occurred Date"
+FROM stockmanagement.stock_card_line_items stcli
+LEFT JOIN stockmanagement.stock_card_line_item_reasons stclir ON stcli.reasonid = stclir.id
+LEFT JOIN stockmanagement.stock_cards stc ON stcli.stockcardid = stc.id
+LEFT JOIN referencedata.orderables ord ON stc.orderableid = ord.id
+LEFT JOIN referencedata.lots lots ON stc.lotid = lots.id
+LEFT JOIN referencedata.program_orderables po ON ord.id = po.orderableid
+LEFT JOIN referencedata.programs prog ON po.programid = prog.id
+LEFT JOIN referencedata.facilities fac ON stc.facilityid = fac.id
+LEFT JOIN referencedata.facility_types facty ON fac.typeid = facty.id
+LEFT JOIN referencedata.facility_operators facop ON fac.operatedbyid = facop.id
+LEFT JOIN referencedata.geographic_zones zone_fac ON zone_fac.id = fac.geographiczoneid
+LEFT JOIN referencedata.geographic_zones dis ON zone_fac.parentid = dis.id
+JOIN user_rights ur ON ur.facilityid = fac.id AND ur.programid = prog.id
+WHERE facty.id IN (
+    '0fbe2b5c-bd2b-46af-ba7f-63c14add59c7',
+    '1096849c-84cd-4a94-8a7a-25d9f6e3911b'
+)
+AND (
+    $P{startDate} IS NULL OR $P{startDate} = ''
+    OR stcli.occurreddate >= TO_TIMESTAMP(NULLIF($P{startDate}, ''), 'YYYY-MM-DD')
+)
+AND (
+    $P{endDate} IS NULL OR $P{endDate} = ''
+    OR stcli.occurreddate < (TO_TIMESTAMP(NULLIF($P{endDate}, ''), 'YYYY-MM-DD') + INTERVAL '1 day')
+)
+AND (
+    $P{facility} IS NULL OR $P{facility} = ''
+    OR fac.name = $P{facility}
+)
+AND (
+    $P{program} IS NULL OR $P{program} = ''
+    OR prog.name = $P{program}
+)
+ORDER BY dis.name, fac.name,prog.name,lots.lotcode, stcli.occurreddate
+		]]>
 	</queryString>
-	<field name="district_name" class="java.lang.String"/>
-	<field name="facility_name" class="java.lang.String"/>
-	<field name="facility_type_name" class="java.lang.String"/>
-	<field name="program_name" class="java.lang.String"/>
-	<field name="product_name" class="java.lang.String"/>
-	<field name="stockout_start_date" class="java.sql.Date"/>
-	<field name="stockout_end_date" class="java.sql.Date"/>
-	<field name="days_out_of_stock" class="java.lang.Integer"/>
-	<field name="running_balance" class="java.lang.Long"/>
+	<field name="Facility" class="java.lang.String"/>
+	<field name="District" class="java.lang.String"/>
+	<field name="Facility Type" class="java.lang.String"/>
+	<field name="Ownership" class="java.lang.String"/>
+	<field name="Program" class="java.lang.String"/>
+	<field name="Product" class="java.lang.String"/>
+	<field name="Batch Number" class="java.lang.String"/>
+	<field name="Quantity" class="java.lang.Integer"/>
+	<field name="Reason" class="java.lang.String"/>
+	<field name="Reason Type" class="java.lang.String"/>
+	<field name="Occurred Date" class="java.lang.String"/>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
 	<title>
-		<band height="40" splitType="Stretch">
+		<band height="60" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="5" width="555" height="30" uuid="bb100001-0000-0000-0000-000000000001"/>
+				<reportElement x="0" y="15" width="555" height="30" uuid="bbb00001-0000-0000-0000-000000000001"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="12" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Stock Out Report]]></text>
+				<text><![CDATA[Data Verification Report]]></text>
 			</staticText>
 		</band>
 	</title>
 	<pageHeader>
 		<band height="30" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="5" width="50" height="20" uuid="bb100040-0000-0000-0000-000000000040"/>
+				<reportElement x="0" y="5" width="50" height="20" uuid="bbb00040-0000-0000-0000-000000000040"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Start Date:]]></text>
 			</staticText>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement x="50" y="5" width="90" height="20" uuid="bb100041-0000-0000-0000-000000000041"/>
+				<reportElement x="50" y="5" width="90" height="20" uuid="bbb00041-0000-0000-0000-000000000041"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$P{startDate} != null && !$P{startDate}.isEmpty() ? $P{startDate} : "All"]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="143" y="5" width="45" height="20" uuid="bb100043-0000-0000-0000-000000000043"/>
+				<reportElement x="145" y="5" width="45" height="20" uuid="bbb00043-0000-0000-0000-000000000043"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
 				<text><![CDATA[End Date:]]></text>
 			</staticText>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement x="188" y="5" width="90" height="20" uuid="bb100044-0000-0000-0000-000000000044"/>
+				<reportElement x="190" y="5" width="90" height="20" uuid="bbb00044-0000-0000-0000-000000000044"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$P{endDate} != null && !$P{endDate}.isEmpty() ? $P{endDate} : "All"]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="281" y="5" width="45" height="20" uuid="bb100047-0000-0000-0000-000000000047"/>
+				<reportElement x="285" y="5" width="35" height="20" uuid="bbb00045-0000-0000-0000-000000000045"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Facility:]]></text>
 			</staticText>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement x="326" y="5" width="130" height="20" uuid="bb100048-0000-0000-0000-000000000048"/>
+				<reportElement x="320" y="5" width="110" height="20" uuid="bbb00046-0000-0000-0000-000000000046"/>
 				<textElement verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$P{facility} != null && !$P{facility}.isEmpty() ? $P{facility} : "All"]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="458" y="5" width="60" height="20" uuid="bb100042-0000-0000-0000-000000000042"/>
+				<reportElement x="435" y="5" width="80" height="20" uuid="bbb00042-0000-0000-0000-000000000042"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
 			</textField>
 			<textField evaluationTime="Report">
-				<reportElement x="518" y="5" width="37" height="20" uuid="bb100042-0000-0000-0000-000000000049"/>
+				<reportElement x="515" y="5" width="40" height="20" uuid="bbb00042-0000-0000-0000-000000000047"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
@@ -265,20 +180,7 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 	<columnHeader>
 		<band height="30" splitType="Stretch">
 			<staticText>
-				<reportElement mode="Opaque" x="0" y="0" width="55" height="30" backcolor="#D3D3D3" uuid="bb200001-0000-0000-0000-000000000001"/>
-				<box>
-					<topPen lineWidth="1.0"/>
-					<leftPen lineWidth="1.0"/>
-					<bottomPen lineWidth="1.0"/>
-					<rightPen lineWidth="1.0"/>
-				</box>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="7" isBold="true"/>
-				</textElement>
-				<text><![CDATA[District]]></text>
-			</staticText>
-			<staticText>
-				<reportElement mode="Opaque" x="55" y="0" width="60" height="30" backcolor="#D3D3D3" uuid="bb200002-0000-0000-0000-000000000002"/>
+				<reportElement mode="Opaque" x="0" y="0" width="65" height="30" backcolor="#D3D3D3" uuid="bbb00010-0000-0000-0000-000000000010"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -291,7 +193,20 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<text><![CDATA[Facility]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="115" y="0" width="45" height="30" backcolor="#D3D3D3" uuid="bb200003-0000-0000-0000-000000000003"/>
+				<reportElement mode="Opaque" x="65" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="bbb00011-0000-0000-0000-000000000011"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[District]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="105" y="0" width="45" height="30" backcolor="#D3D3D3" uuid="bbb00012-0000-0000-0000-000000000012"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -304,7 +219,20 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<text><![CDATA[Facility Type]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="160" y="0" width="45" height="30" backcolor="#D3D3D3" uuid="bb200004-0000-0000-0000-000000000004"/>
+				<reportElement mode="Opaque" x="150" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="bbb00013-0000-0000-0000-000000000013"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Ownership]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="190" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="bbb00014-0000-0000-0000-000000000014"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -317,7 +245,7 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<text><![CDATA[Program]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="205" y="0" width="110" height="30" backcolor="#D3D3D3" uuid="bb200005-0000-0000-0000-000000000005"/>
+				<reportElement mode="Opaque" x="230" y="0" width="90" height="30" backcolor="#D3D3D3" uuid="bbb00015-0000-0000-0000-000000000015"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -330,7 +258,7 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<text><![CDATA[Product]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="315" y="0" width="60" height="30" backcolor="#D3D3D3" uuid="bb200006-0000-0000-0000-000000000006"/>
+				<reportElement mode="Opaque" x="320" y="0" width="45" height="30" backcolor="#D3D3D3" uuid="bbb00016-0000-0000-0000-000000000016"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -340,10 +268,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Stockout Start Date]]></text>
+				<text><![CDATA[Batch No.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="375" y="0" width="60" height="30" backcolor="#D3D3D3" uuid="bb200007-0000-0000-0000-000000000007"/>
+				<reportElement mode="Opaque" x="365" y="0" width="30" height="30" backcolor="#D3D3D3" uuid="bbb00017-0000-0000-0000-000000000017"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -353,10 +281,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Stockout End Date]]></text>
+				<text><![CDATA[Qty]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="435" y="0" width="60" height="30" backcolor="#D3D3D3" uuid="bb200008-0000-0000-0000-000000000008"/>
+				<reportElement mode="Opaque" x="395" y="0" width="45" height="30" backcolor="#D3D3D3" uuid="bbb00018-0000-0000-0000-000000000018"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -366,10 +294,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Days Out of Stock]]></text>
+				<text><![CDATA[Reason]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="495" y="0" width="60" height="30" backcolor="#D3D3D3" uuid="bb200009-0000-0000-0000-000000000009"/>
+				<reportElement mode="Opaque" x="440" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="bbb00019-0000-0000-0000-000000000019"/>
 				<box>
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -379,14 +307,27 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Balance]]></text>
+				<text><![CDATA[Reason Type]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="480" y="0" width="75" height="30" backcolor="#D3D3D3" uuid="bbb00020-0000-0000-0000-000000000020"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Occurred Date]]></text>
 			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
 		<band height="20" splitType="Stretch">
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="55" height="20" uuid="bb300001-0000-0000-0000-000000000001"/>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="65" height="20" uuid="bbb00030-0000-0000-0000-000000000030"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -396,10 +337,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{district_name}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Facility}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="55" y="0" width="60" height="20" uuid="bb300002-0000-0000-0000-000000000002"/>
+				<reportElement stretchType="RelativeToTallestObject" x="65" y="0" width="40" height="20" uuid="bbb00031-0000-0000-0000-000000000031"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -409,10 +350,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{facility_name}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{District}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="115" y="0" width="45" height="20" uuid="bb300003-0000-0000-0000-000000000003"/>
+				<reportElement stretchType="RelativeToTallestObject" x="105" y="0" width="45" height="20" uuid="bbb00032-0000-0000-0000-000000000032"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -422,10 +363,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{facility_type_name}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Facility Type}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="160" y="0" width="45" height="20" uuid="bb300004-0000-0000-0000-000000000004"/>
+				<reportElement stretchType="RelativeToTallestObject" x="150" y="0" width="40" height="20" uuid="bbb00033-0000-0000-0000-000000000033"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -435,10 +376,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{program_name}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Ownership}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="205" y="0" width="110" height="20" uuid="bb300005-0000-0000-0000-000000000005"/>
+				<reportElement stretchType="RelativeToTallestObject" x="190" y="0" width="40" height="20" uuid="bbb00034-0000-0000-0000-000000000034"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -448,10 +389,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{product_name}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Program}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="315" y="0" width="60" height="20" uuid="bb300006-0000-0000-0000-000000000006"/>
+				<reportElement stretchType="RelativeToTallestObject" x="230" y="0" width="90" height="20" uuid="bbb00035-0000-0000-0000-000000000035"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -461,10 +402,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{stockout_start_date} == null ? "" : new java.text.SimpleDateFormat("dd MMM yyyy").format($F{stockout_start_date})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Product}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="375" y="0" width="60" height="20" uuid="bb300007-0000-0000-0000-000000000007"/>
+				<reportElement stretchType="RelativeToTallestObject" x="320" y="0" width="45" height="20" uuid="bbb00036-0000-0000-0000-000000000036"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -474,10 +415,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{stockout_end_date} == null ? "Ongoing" : new java.text.SimpleDateFormat("dd MMM yyyy").format($F{stockout_end_date})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Batch Number}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="435" y="0" width="60" height="20" uuid="bb300008-0000-0000-0000-000000000008"/>
+				<reportElement stretchType="RelativeToTallestObject" x="365" y="0" width="30" height="20" uuid="bbb00037-0000-0000-0000-000000000037"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -487,10 +428,10 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{days_out_of_stock}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Quantity}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
-				<reportElement stretchType="RelativeToTallestObject" x="495" y="0" width="60" height="20" uuid="bb300009-0000-0000-0000-000000000009"/>
+				<reportElement stretchType="RelativeToTallestObject" x="395" y="0" width="45" height="20" uuid="bbb00038-0000-0000-0000-000000000038"/>
 				<box padding="2">
 					<topPen lineWidth="1.0"/>
 					<leftPen lineWidth="1.0"/>
@@ -500,21 +441,47 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{running_balance}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Reason}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="440" y="0" width="40" height="20" uuid="bbb00039-0000-0000-0000-000000000039"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Reason Type}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="480" y="0" width="75" height="20" uuid="bbb00050-0000-0000-0000-000000000050"/>
+				<box padding="2">
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Occurred Date}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
 	<pageFooter>
 		<band height="20" splitType="Stretch">
 			<textField>
-				<reportElement x="400" y="0" width="100" height="20" uuid="bb300060-0000-0000-0000-000000000060"/>
+				<reportElement x="400" y="0" width="100" height="20" uuid="bbb00060-0000-0000-0000-000000000060"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
 			</textField>
 			<textField evaluationTime="Report">
-				<reportElement x="500" y="0" width="55" height="20" uuid="bb300060-0000-0000-0000-000000000061"/>
+				<reportElement x="500" y="0" width="55" height="20" uuid="bbb00060-0000-0000-0000-000000000061"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
@@ -525,7 +492,7 @@ ORDER BY district_name, facility_name, program_name, product_name, stockout_star
 	<summary>
 		<band height="50" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="0" width="555" height="50" uuid="d5ac5426-34dd-41c4-acde-4510f82e3adc">
+				<reportElement x="0" y="0" width="555" height="50" uuid="d5ac5426-34dd-41c4-acde-4510f82e3add">
 					<printWhenExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()==0)]]></printWhenExpression>
 				</reportElement>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
