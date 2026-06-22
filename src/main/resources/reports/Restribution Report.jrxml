@@ -291,7 +291,7 @@ ORDER BY issudis.name, issufac.name, dis.name, fac.name, stcli.occurreddate]]>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Qty]]></text>
+				<text><![CDATA[Received Qty]]></text>
 			</staticText>
 			<staticText>
 				<reportElement mode="Opaque" x="342" y="0" width="50" height="30" backcolor="#D3D3D3" uuid="aa200018-0000-0000-0000-000000000018"/>
@@ -330,7 +330,7 @@ ORDER BY issudis.name, issufac.name, dis.name, fac.name, stcli.occurreddate]]>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Recv District]]></text>
+				<text><![CDATA[Receiving District]]></text>
 			</staticText>
 			<staticText>
 				<reportElement mode="Opaque" x="483" y="0" width="36" height="30" backcolor="#D3D3D3" uuid="aa200021-0000-0000-0000-000000000021"/>
@@ -343,7 +343,7 @@ ORDER BY issudis.name, issufac.name, dis.name, fac.name, stcli.occurreddate]]>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Recv Type]]></text>
+				<text><![CDATA[Receivng Type]]></text>
 			</staticText>
 			<staticText>
 				<reportElement mode="Opaque" x="519" y="0" width="36" height="30" backcolor="#D3D3D3" uuid="aa200022-0000-0000-0000-000000000022"/>
@@ -356,7 +356,7 @@ ORDER BY issudis.name, issufac.name, dis.name, fac.name, stcli.occurreddate]]>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Recv Owner]]></text>
+				<text><![CDATA[Receiving Owner]]></text>
 			</staticText>
 		</band>
 	</columnHeader>
