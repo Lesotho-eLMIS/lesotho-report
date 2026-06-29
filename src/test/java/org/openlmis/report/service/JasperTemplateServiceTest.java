@@ -158,6 +158,10 @@ public class JasperTemplateServiceTest {
   private static final String HEADER_CONFIG_PROPERTIES = "/config/reports/header_config.properties";
   private static final String GLOBAL_HEADER_LANDSCAPE = "GlobalHeaderLandscape";
   private static final String GLOBAL_HEADER_PORTRAIT = "GlobalHeaderPortrait";
+  private static final String DESC = "desc";
+  private static final String USERS_MANAGE = "USERS_MANAGE";
+  private static final String JAVA_LANG_STRING = "java.lang.String";
+  private static final String DEFAULT_EXPR_TEXT = "text";
   
   private HttpServletRequest request;
   private JasperTemplate template;
@@ -213,11 +217,57 @@ public class JasperTemplateServiceTest {
     assertEquals(template.getId(), oldId);
   }
 
+  @Test
+  public void shouldThrowWhenTemplateExistsAndOverrideIsNull() throws Exception {
+    expectedException.expect(ValidationMessageException.class);
+    expectedException.expectMessage(ERROR_REPORTING_TEMPLATE_EXIST);
+
+    ReportCategory reportCategory = new ReportCategory();
+    reportCategory.setId(UUID.randomUUID());
+    reportCategory.setName(CATEGORY_NAME);
+
+    JasperTemplate existing = new JasperTemplate();
+    existing.setName(DISPLAY_NAME);
+    existing.setId(UUID.randomUUID());
+    existing.setRequiredRights(new ArrayList<>());
+    existing.setCategory(reportCategory);
+
+    given(jasperTemplateRepository.findByName(anyString())).willReturn(existing);
+    given(reportCategoryRepository.findByName(anyString())).willReturn(Optional.of(reportCategory));
+    given(rightReferenceDataService.findRight(anyString())).willReturn(new RightDto());
+
+    jasperTemplateService.saveTemplate(mock(MultipartFile.class), DISPLAY_NAME, DESC,
+        Collections.singletonList(USERS_MANAGE), CATEGORY_NAME, null);
+  }
+
+  @Test
+  public void shouldThrowWhenTemplateExistsAndOverrideIsFalse() throws Exception {
+    expectedException.expect(ValidationMessageException.class);
+    expectedException.expectMessage(ERROR_REPORTING_TEMPLATE_EXIST);
+
+    ReportCategory reportCategory = new ReportCategory();
+    reportCategory.setId(UUID.randomUUID());
+    reportCategory.setName(CATEGORY_NAME);
+
+    JasperTemplate existing = new JasperTemplate();
+    existing.setName(DISPLAY_NAME);
+    existing.setId(UUID.randomUUID());
+    existing.setRequiredRights(new ArrayList<>());
+    existing.setCategory(reportCategory);
+
+    given(jasperTemplateRepository.findByName(anyString())).willReturn(existing);
+    given(reportCategoryRepository.findByName(anyString())).willReturn(Optional.of(reportCategory));
+    given(rightReferenceDataService.findRight(anyString())).willReturn(new RightDto());
+
+    jasperTemplateService.saveTemplate(mock(MultipartFile.class), DISPLAY_NAME, DESC,
+        Collections.singletonList(USERS_MANAGE), CATEGORY_NAME, false);
+  }
+
   private JasperTemplate testSaveTemplate() throws ReportingException {
     JasperTemplateService service = spy(jasperTemplateService);
     MultipartFile file = mock(MultipartFile.class);
     String description = "description";
-    List<String> requiredRights = Collections.singletonList("USERS_MANAGE");
+    List<String> requiredRights = Collections.singletonList(USERS_MANAGE);
 
     given(rightReferenceDataService.findRight(requiredRights.get(0)))
         .willReturn(new RightDto());
@@ -228,7 +278,7 @@ public class JasperTemplateServiceTest {
 
     // when
     JasperTemplate resultTemplate = service.saveTemplate(file,
-        JasperTemplateServiceTest.DISPLAY_NAME, description, requiredRights, CATEGORY_NAME);
+        JasperTemplateServiceTest.DISPLAY_NAME, description, requiredRights, CATEGORY_NAME, true);
 
     // then
     assertEquals(JasperTemplateServiceTest.DISPLAY_NAME, resultTemplate.getName());
@@ -249,7 +299,7 @@ public class JasperTemplateServiceTest {
 
     // when
     jasperTemplateService.saveTemplate(null, null, null, Collections.singletonList(rejectedRight),
-        null);
+        null, false);
   }
   
   @Test
@@ -391,18 +441,18 @@ public class JasperTemplateServiceTest {
     when(propertiesMap.getProperty("options")).thenReturn("option 1,opt\\,ion 2");
 
     when(param1.getPropertiesMap()).thenReturn(propertiesMap);
-    when(param1.getValueClassName()).thenReturn("java.lang.String");
+    when(param1.getValueClassName()).thenReturn(JAVA_LANG_STRING);
     when(param1.getName()).thenReturn(PARAM_NAME);
     when(param1.isForPrompting()).thenReturn(true);
-    when(param1.getDescription()).thenReturn("desc");
+    when(param1.getDescription()).thenReturn(DESC);
     when(param1.getDefaultValueExpression()).thenReturn(jrExpression);
-    when(jrExpression.getText()).thenReturn("text");
+    when(jrExpression.getText()).thenReturn(DEFAULT_EXPR_TEXT);
 
     when(param2.getPropertiesMap()).thenReturn(propertiesMap);
     when(param2.getValueClassName()).thenReturn("java.lang.Integer");
     when(param2.getName()).thenReturn(PARAM_NAME);
     when(param2.isForPrompting()).thenReturn(true);
-    when(param2.getDescription()).thenReturn("desc");
+    when(param2.getDescription()).thenReturn(DESC);
     when(param2.getDefaultValueExpression()).thenReturn(jrExpression);
 
     when(param3.getValueClassName()).thenReturn("java.awt.Image");
@@ -429,7 +479,7 @@ public class JasperTemplateServiceTest {
     assertEquals("test type", jasperTemplate.getType());
     assertThat(jasperTemplate.getTemplateParameters().get(0).getDisplayName(),
         is(PARAM_DISPLAY_NAME));
-    assertThat(jasperTemplate.getTemplateParameters().get(0).getDescription(), is("desc"));
+    assertThat(jasperTemplate.getTemplateParameters().get(0).getDescription(), is(DESC));
     assertThat(jasperTemplate.getTemplateParameters().get(0).getName(), is(PARAM_NAME));
     assertThat(jasperTemplate.getTemplateParameters().get(0).getRequired(), is(true));
     assertThat(jasperTemplate.getTemplateParameters().get(0).getOptions(), contains("option 1",
@@ -460,10 +510,10 @@ public class JasperTemplateServiceTest {
     when(propertiesMap.getProperty(DISPLAY_NAME)).thenReturn(PARAM_DISPLAY_NAME);
 
     when(param1.getPropertiesMap()).thenReturn(propertiesMap);
-    when(param1.getValueClassName()).thenReturn("java.lang.String");
+    when(param1.getValueClassName()).thenReturn(JAVA_LANG_STRING);
     when(param1.isForPrompting()).thenReturn(true);
     when(param1.getDefaultValueExpression()).thenReturn(jrExpression);
-    when(jrExpression.getText()).thenReturn("text");
+    when(jrExpression.getText()).thenReturn(DEFAULT_EXPR_TEXT);
 
     when(param2.getPropertiesMap()).thenReturn(propertiesMap);
     when(param2.getValueClassName()).thenReturn("java.lang.Integer");
@@ -622,11 +672,11 @@ public class JasperTemplateServiceTest {
         + "field2:contains:value2");
 
     when(param1.getPropertiesMap()).thenReturn(propertiesMap);
-    when(param1.getValueClassName()).thenReturn("java.lang.String");
+    when(param1.getValueClassName()).thenReturn(JAVA_LANG_STRING);
     when(param1.getName()).thenReturn(PARAM_NAME);
     when(param1.isForPrompting()).thenReturn(true);
     when(param1.getDefaultValueExpression()).thenReturn(jrExpression);
-    when(jrExpression.getText()).thenReturn("text");
+    when(jrExpression.getText()).thenReturn(DEFAULT_EXPR_TEXT);
 
     ByteArrayOutputStream byteOutputStream = mock(ByteArrayOutputStream.class);
     whenNew(ByteArrayOutputStream.class).withAnyArguments().thenReturn(byteOutputStream);
@@ -736,13 +786,13 @@ public class JasperTemplateServiceTest {
         .willReturn(Optional.empty());
 
     MultipartFile file = mock(MultipartFile.class);
-    List<String> requiredRights = Collections.singletonList("USERS_MANAGE");
+    List<String> requiredRights = Collections.singletonList(USERS_MANAGE);
 
     given(rightReferenceDataService.findRight(requiredRights.get(0)))
         .willReturn(new RightDto());
 
     jasperTemplateService.saveTemplate(file, "TestName", "Description",
-        requiredRights, "NonExistentCategory");
+        requiredRights, "NonExistentCategory", false);
   }
 
   @Test
@@ -770,13 +820,13 @@ public class JasperTemplateServiceTest {
     JasperTemplateService service = spy(jasperTemplateService);
     MultipartFile file = mock(MultipartFile.class);
     String newDescription = "New Description";
-    List<String> newRights = Collections.singletonList("USERS_MANAGE");
+    List<String> newRights = Collections.singletonList(USERS_MANAGE);
 
     doNothing().when(service)
         .validateFileAndSaveTemplate(any(JasperTemplate.class), eq(file));
 
     JasperTemplate resultTemplate = service.saveTemplate(file,
-        DISPLAY_NAME, newDescription, newRights, CATEGORY_NAME);
+        DISPLAY_NAME, newDescription, newRights, CATEGORY_NAME, true);
 
     assertEquals(newDescription, resultTemplate.getDescription());
     assertEquals(newRights, resultTemplate.getRequiredRights());
@@ -1330,6 +1380,69 @@ public class JasperTemplateServiceTest {
     assertEquals(mockCompiledHeader, result.get(HEADER_PARAM_NAME));
     assertEquals("Test Ministry", result.get("title"));
     assertEquals("/config/reports/logo.png", result.get("logoImage"));
+  }
+
+  @Test
+  public void shouldSetDisplayOrderFromJrxmlDeclarationOrder() throws Exception {
+    MultipartFile file = mock(MultipartFile.class);
+    when(file.getOriginalFilename()).thenReturn(NAME_OF_FILE);
+
+    mockStatic(JasperCompileManager.class);
+    JasperReport report = mock(JasperReport.class);
+    InputStream inputStream = mock(InputStream.class);
+    when(file.getInputStream()).thenReturn(inputStream);
+
+    JRParameter first = mock(JRParameter.class);
+    JRParameter imageParam = mock(JRParameter.class);
+    JRParameter second = mock(JRParameter.class);
+    JRParameter third = mock(JRParameter.class);
+    JRPropertiesMap propertiesMap = mock(JRPropertiesMap.class);
+    JRExpression jrExpression = mock(JRExpression.class);
+
+    String[] propertyNames = {DISPLAY_NAME};
+    when(report.getParameters())
+        .thenReturn(new JRParameter[]{first, imageParam, second, third});
+    when(JasperCompileManager.compileReport(inputStream)).thenReturn(report);
+    when(propertiesMap.getPropertyNames()).thenReturn(propertyNames);
+    when(propertiesMap.getProperty(DISPLAY_NAME)).thenReturn(PARAM_DISPLAY_NAME);
+    when(jrExpression.getText()).thenReturn(DEFAULT_EXPR_TEXT);
+
+    for (JRParameter p : new JRParameter[]{first, second, third}) {
+      when(p.getPropertiesMap()).thenReturn(propertiesMap);
+      when(p.getValueClassName()).thenReturn(JAVA_LANG_STRING);
+      when(p.isForPrompting()).thenReturn(true);
+      when(p.getDefaultValueExpression()).thenReturn(jrExpression);
+    }
+    when(first.getName()).thenReturn(PARAM1);
+    when(second.getName()).thenReturn(PARAM2);
+    when(third.getName()).thenReturn(PARAM3);
+
+    when(imageParam.getValueClassName()).thenReturn("java.awt.Image");
+    when(imageParam.isForPrompting()).thenReturn(false);
+    when(imageParam.isSystemDefined()).thenReturn(false);
+    when(imageParam.getName()).thenReturn(IMAGE_NAME);
+    when(reportImageRepository.findByName(IMAGE_NAME)).thenReturn(mock(ReportImage.class));
+
+    ByteArrayOutputStream byteOutputStream = mock(ByteArrayOutputStream.class);
+    whenNew(ByteArrayOutputStream.class).withAnyArguments().thenReturn(byteOutputStream);
+    ObjectOutputStream objectOutputStream = spy(new ObjectOutputStream(byteOutputStream));
+    whenNew(ObjectOutputStream.class).withArguments(byteOutputStream)
+        .thenReturn(objectOutputStream);
+    doNothing().when(objectOutputStream).writeObject(report);
+    when(byteOutputStream.toByteArray()).thenReturn(new byte[1]);
+
+    JasperTemplate jasperTemplate = new JasperTemplate();
+
+    jasperTemplateService.validateFileAndInsertTemplate(jasperTemplate, file);
+
+    List<JasperTemplateParameter> params = jasperTemplate.getTemplateParameters();
+    assertEquals(3, params.size());
+    assertEquals(PARAM1, params.get(0).getName());
+    assertEquals(Integer.valueOf(0), params.get(0).getDisplayOrder());
+    assertEquals(PARAM2, params.get(1).getName());
+    assertEquals(Integer.valueOf(1), params.get(1).getDisplayOrder());
+    assertEquals(PARAM3, params.get(2).getName());
+    assertEquals(Integer.valueOf(2), params.get(2).getDisplayOrder());
   }
 
   private byte[] convertImageToByteArray(BufferedImage image) throws IOException {

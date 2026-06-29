@@ -75,6 +75,17 @@
       right_assignments.rightname = 'STOCK_CARDS_VIEW'
       AND right_assignments.userId = $P{userId}:: uuid
   ),
+  latest_orderables AS (
+    SELECT DISTINCT ON (id)
+      id,
+      fullproductname,
+      code,
+      versionnumber
+    FROM referencedata.orderables
+    ORDER BY
+      id,
+      versionnumber DESC
+  ),
   stock_data AS (
     SELECT
       o.fullproductname,
@@ -192,7 +203,7 @@
       stock_card_line_items.stockcardid
     JOIN referencedata.facilities AS facilities ON facilities.id =
       stock_cards.facilityid
-    JOIN referencedata.orderables AS products ON products.id =
+    JOIN latest_orderables AS products ON products.id =
       stock_cards.orderableid
     JOIN referencedata.programs AS programs ON stock_cards.programid =
       programs.id
@@ -237,7 +248,7 @@
         OR ($P{startDate} IS NULL AND $P{endDate} IS NULL)
       )
   	)
-	SELECT
+	SELECT DISTINCT
 	  facilityName,
 	  productName,
 	  productCode,

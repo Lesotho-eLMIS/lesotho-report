@@ -20,6 +20,7 @@ import org.openlmis.report.exception.BaseMessageException;
 import org.openlmis.report.exception.DataRetrievalException;
 import org.openlmis.report.exception.NotFoundMessageException;
 import org.openlmis.report.exception.PermissionMessageException;
+import org.openlmis.report.exception.ServerException;
 import org.openlmis.report.exception.ValidationMessageException;
 import org.openlmis.report.i18n.MessageService;
 import org.openlmis.report.utils.Message;
@@ -82,6 +83,13 @@ public class BaseErrorHandling {
   @ResponseStatus(HttpStatus.NOT_FOUND)
   @ResponseBody
   public Message.LocalizedMessage handleNotFoundMessageException(NotFoundMessageException ex) {
+    return getLocalizedMessage(ex);
+  }
+
+  @ExceptionHandler(ServerException.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  @ResponseBody
+  public Message.LocalizedMessage handleServerException(ServerException ex) {
     return getLocalizedMessage(ex);
   }
 

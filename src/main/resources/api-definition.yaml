@@ -282,6 +282,11 @@ resourceTypes:
                             type: string
                             required: false
                             repeat: false
+                        override:
+                            displayName: Replace existing template with the same name
+                            type: boolean
+                            required: false
+                            repeat: false
               responses:
                     200:
                     403:
@@ -447,6 +452,25 @@ resourceTypes:
                           body:
                             application/json:
                                 schema: localizedMessage
+      /superset:
+        /guest-token:
+          displayName: Superset guest token
+          get:
+            is: [ secured ]
+            description: Get a Superset guest token for embedding a dashboard.
+            queryParameters:
+              embeddedUuid:
+                displayName: embeddedUuid
+                type: string
+                required: true
+            responses:
+              200:
+                body:
+                  application/json:
+              401:
+                body:
+                  application/json:
+                    schema: localizedMessage
       /dashboardReports:
         displayName: Dashboard reports
         get:

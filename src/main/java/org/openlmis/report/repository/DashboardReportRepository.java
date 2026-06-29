@@ -31,6 +31,8 @@ public interface DashboardReportRepository
 
   boolean existsByName(String name);
 
+  boolean existsByEmbeddedUuid(String embeddedUuid);
+
   List<DashboardReport> findByShowOnHomePage(boolean showOnHomePage);
 
   boolean existsByCategory_Id(UUID categoryId);

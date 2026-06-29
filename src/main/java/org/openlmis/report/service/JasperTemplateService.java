@@ -15,6 +15,7 @@
 
 package org.openlmis.report.service;
 
+import static org.apache.commons.lang3.BooleanUtils.isTrue;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.openlmis.report.i18n.AuthorizationMessageKeys.ERROR_RIGHT_NOT_FOUND;
@@ -100,17 +101,19 @@ public class JasperTemplateService {
   private ReportCategoryRepository reportCategoryRepository;
 
   /**
-   * Saves a template with given name.
-   * If template already exists, only description and required rights are updated.
+   * Saves a template with given name. If a template with that name already exists,
+   * the upload is rejected unless override=true is passed; in that case the existing
+   * template is updated in place (id preserved).
    *
    * @param file report file
    * @param name name of report
    * @param description report's description
+   * @param override when true, replace an existing template with the same name
    * @return saved report template
    */
   public JasperTemplate saveTemplate(
       MultipartFile file, String name, String description, List<String> requiredRights,
-      String category) throws ReportingException {
+      String category, Boolean override) throws ReportingException {
     validateRequiredRights(requiredRights);
     JasperTemplate jasperTemplate = jasperTemplateRepository.findByName(name);
 
@@ -129,6 +132,10 @@ public class JasperTemplateService {
           .category(reportCategory.get())
           .build();
     } else {
+      if (!isTrue(override)) {
+        throw new ValidationMessageException(
+            new Message(ERROR_REPORTING_TEMPLATE_EXIST, name));
+      }
       jasperTemplate.setDescription(description);
       jasperTemplate.getRequiredRights().clear();
       jasperTemplate.getRequiredRights().addAll(requiredRights);
@@ -400,15 +407,12 @@ public class JasperTemplateService {
   }
 
   /**
-   * Validate ".jrmxl" file and insert if template not exist. If this name of template already
-   * exist, remove older template and insert new.
+   * Validate ".jrxml" file and persist the template. Performs UPDATE in place
+   * when given a managed entity (preserves id). The previous delete-then-insert
+   * pattern caused a managed-entity conflict on duplicate-name uploads.
    */
   void validateFileAndSaveTemplate(JasperTemplate jasperTemplate, MultipartFile file)
       throws ReportingException {
-    JasperTemplate templateTmp = jasperTemplateRepository.findByName(jasperTemplate.getName());
-    if (templateTmp != null) {
-      jasperTemplateRepository.deleteById(templateTmp.getId());
-    }
     validateFileAndSetData(jasperTemplate, file);
     saveWithParameters(jasperTemplate);
   }
@@ -450,16 +454,34 @@ public class JasperTemplateService {
     }
   }
 
+  private Map<String, JasperTemplateParameter> buildExistingParamMap(JasperTemplate template) {
+    Map<String, JasperTemplateParameter> map = new HashMap<>();
+    if (template.getTemplateParameters() != null) {
+      for (JasperTemplateParameter p : template.getTemplateParameters()) {
+        map.put(p.getName(), p);
+      }
+    }
+    return map;
+  }
+
   private void processJrParameters(JasperTemplate jasperTemplate, JRParameter[] jrParameters)
       throws ReportingException {
+    Map<String, JasperTemplateParameter> existingByName = buildExistingParamMap(jasperTemplate);
+
     ArrayList<JasperTemplateParameter> parameters = new ArrayList<>();
     Set<ReportImage> images = new HashSet<>();
+    int order = 0;
 
     for (JRParameter jrParameter : jrParameters) {
       if (!jrParameter.isSystemDefined()) {
         if (jrParameter.isForPrompting()) {
           JasperTemplateParameter jasperTemplateParameter = createParameter(jrParameter);
           jasperTemplateParameter.setTemplate(jasperTemplate);
+          jasperTemplateParameter.setDisplayOrder(order++);
+          JasperTemplateParameter existing = existingByName.get(jrParameter.getName());
+          if (existing != null) {
+            mergeDbOnlyFields(jasperTemplateParameter, existing);
+          }
           parameters.add(jasperTemplateParameter);
         } else if (Image.class.getName().equals(jrParameter.getValueClassName())) {
           String name = jrParameter.getName();
@@ -472,8 +494,22 @@ public class JasperTemplateService {
       }
     }
 
-    jasperTemplate.setTemplateParameters(parameters);
-    jasperTemplate.setReportImages(images);
+    // Mutate existing collections instead of replacing references, otherwise
+    // Hibernate's orphanRemoval=true throws "collection no longer referenced"
+    // when called on a managed entity (override=true update path).
+    if (jasperTemplate.getTemplateParameters() == null) {
+      jasperTemplate.setTemplateParameters(new ArrayList<>());
+    } else {
+      jasperTemplate.getTemplateParameters().clear();
+    }
+    jasperTemplate.getTemplateParameters().addAll(parameters);
+
+    if (jasperTemplate.getReportImages() == null) {
+      jasperTemplate.setReportImages(new HashSet<>());
+    } else {
+      jasperTemplate.getReportImages().clear();
+    }
+    jasperTemplate.getReportImages().addAll(images);
   }
 
   /**
@@ -525,6 +561,23 @@ public class JasperTemplateService {
     jasperTemplateParameter.setDependencies(extractDependencies(jrParameter));
 
     return jasperTemplateParameter;
+  }
+
+  private void mergeDbOnlyFields(JasperTemplateParameter target, JasperTemplateParameter source) {
+    if (target.getSelectExpression() == null) {
+      target.setSelectExpression(source.getSelectExpression());
+    }
+    if (target.getSelectProperty() == null) {
+      target.setSelectProperty(source.getSelectProperty());
+    }
+    if (target.getDisplayProperty() == null) {
+      target.setDisplayProperty(source.getDisplayProperty());
+    }
+    if (target.getDescription() == null) {
+      target.setDescription(source.getDescription());
+    }
+    target.setSelectMethod(source.getSelectMethod());
+    target.setSelectBody(source.getSelectBody());
   }
 
   private void throwIfTemplateWithSameNameAlreadyExists(String name) throws ReportingException {

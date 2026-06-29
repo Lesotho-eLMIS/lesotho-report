@@ -124,6 +124,11 @@ public class JasperTemplateParameter extends BaseEntity {
   @Setter
   private Boolean required;
 
+  @Column
+  @Getter
+  @Setter
+  private Integer displayOrder;
+
   /**
    * Create new instance of JasperTemplateParameter based on given {@link Importer}.
    *
@@ -144,6 +149,7 @@ public class JasperTemplateParameter extends BaseEntity {
     jasperTemplateParameter.setSelectProperty(importer.getSelectProperty());
     jasperTemplateParameter.setDisplayProperty(importer.getDisplayProperty());
     jasperTemplateParameter.setRequired(importer.getRequired());
+    jasperTemplateParameter.setDisplayOrder(importer.getDisplayOrder());
     jasperTemplateParameter.setOptions(importer.getOptions());
     jasperTemplateParameter.setDependencies(importer.getDependencies()
         .stream()
@@ -171,6 +177,7 @@ public class JasperTemplateParameter extends BaseEntity {
     exporter.setSelectProperty(selectProperty);
     exporter.setDisplayProperty(displayProperty);
     exporter.setRequired(required);
+    exporter.setDisplayOrder(displayOrder);
     exporter.setOptions(options);
     exporter.setDependencies(dependencies
         .stream()
@@ -212,6 +219,8 @@ public class JasperTemplateParameter extends BaseEntity {
 
     void setRequired(Boolean required);
 
+    void setDisplayOrder(Integer displayOrder);
+
     void setOptions(List<String> options);
 
     void setDependencies(List<JasperTemplateParameterDependencyDto> dependencies);
@@ -241,6 +250,8 @@ public class JasperTemplateParameter extends BaseEntity {
     String getDisplayProperty();
 
     Boolean getRequired();
+
+    Integer getDisplayOrder();
 
     List<String> getOptions();
 

@@ -30,6 +30,7 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
@@ -72,6 +73,7 @@ public class JasperTemplate extends BaseEntity {
       fetch = FetchType.EAGER,
       orphanRemoval = true)
   @Fetch(FetchMode.SELECT)
+  @OrderBy("displayOrder ASC NULLS LAST")
   private List<JasperTemplateParameter> templateParameters;
 
   @ManyToMany(fetch = FetchType.EAGER)

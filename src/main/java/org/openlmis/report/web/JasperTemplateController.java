@@ -111,7 +111,9 @@ public class JasperTemplateController extends BaseController {
   @ResponseStatus(HttpStatus.OK)
   public void createJasperReportTemplate(
       @RequestPart("file") MultipartFile file, String name, String description,
-      String[] requiredRights, String category) throws ReportingException {
+      String[] requiredRights, String category,
+      @RequestParam(value = "override", required = false) Boolean override)
+      throws ReportingException {
     permissionService.canEditReportTemplates();
 
     LOGGER.debug("Saving template with name: " + name);
@@ -120,7 +122,7 @@ public class JasperTemplateController extends BaseController {
         ? Collections.emptyList() : Arrays.asList(requiredRights);
 
     JasperTemplate template = jasperTemplateService
-        .saveTemplate(file, name, description, rightList, category);
+        .saveTemplate(file, name, description, rightList, category, override);
 
     LOGGER.debug("Saved template with id: " + template.getId());
   }
