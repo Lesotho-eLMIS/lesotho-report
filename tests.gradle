@@ -1,6 +1,17 @@
 configurations {
     integrationTestCompile.extendsFrom testCompile
     integrationTestRuntime.extendsFrom testRuntime
+    jacocoAnt
+    jacocoRuntime
+}
+
+jacoco {
+    toolVersion = "0.8.5"
+}
+
+dependencies {
+    jacocoAnt "org.jacoco:org.jacoco.ant:${jacoco.toolVersion}"
+    jacocoRuntime "org.jacoco:org.jacoco.agent:${jacoco.toolVersion}:runtime"
 }
 
 tasks.withType(Test) {
@@ -8,7 +19,45 @@ tasks.withType(Test) {
     reports.junitXml.destination = file("${testResultsDir}/${name}")
 }
 
+// Offline instrumentation is required so that classes loaded through PowerMock's
+// own classloader (@PrepareForTest / whenNew / spy) are still recorded by JaCoCo.
+// The on-the-fly agent cannot see those classes. See https://www.jacoco.org/jacoco/trunk/doc/offline.html
+task instrument(dependsOn: [classes, configurations.jacocoAnt]) {
+    ext.outputDir = "$buildDir/instrumentedClasses"
+    inputs.files sourceSets.main.output.classesDirs
+    outputs.dir outputDir
+    doFirst {
+        // stale instrumented classes from renamed/deleted sources must not linger
+        // on the test classpath
+        delete outputDir
+    }
+    doLast {
+        ant.taskdef(
+                resource: 'org/jacoco/ant/antlib.xml',
+                classpath: configurations.jacocoAnt.asPath,
+                uri: 'jacoco'
+        )
+        sourceSets.main.output.classesDirs.each { dir ->
+            ant.'jacoco:instrument'(destdir: outputDir) {
+                fileset(dir: dir, includes: '**/*.class')
+            }
+        }
+    }
+}
+
 test {
+    dependsOn instrument
+    // disable the on-the-fly agent; coverage is collected from the offline-instrumented classes
+    jacoco {
+        enabled = false
+    }
+    doFirst {
+        // the offline agent appends to the destfile, so drop the previous run's data
+        delete "$buildDir/jacoco/test.exec"
+        classpath = files(instrument.outputDir) + classpath + configurations.jacocoRuntime
+        systemProperty 'jacoco-agent.destfile', "$buildDir/jacoco/test.exec"
+        jvmArgs '-noverify'
+    }
     testLogging {
         events 'started', 'passed'
         exceptionFormat = 'full'

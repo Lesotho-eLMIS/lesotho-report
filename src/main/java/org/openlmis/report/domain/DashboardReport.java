@@ -43,7 +43,7 @@ public class DashboardReport extends BaseEntity {
   @Column(columnDefinition = TEXT_COLUMN_DEFINITION, nullable = false)
   private String name;
 
-  @Column(columnDefinition = TEXT_COLUMN_DEFINITION, nullable = false)
+  @Column(columnDefinition = TEXT_COLUMN_DEFINITION)
   private String url;
 
   @Column(columnDefinition = TEXT_COLUMN_DEFINITION)

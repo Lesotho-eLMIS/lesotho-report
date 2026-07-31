@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.openlmis.report.domain.DashboardReport;
 import org.openlmis.report.domain.ReportCategory;
 import org.openlmis.report.dto.DashboardReportDto;
@@ -156,6 +157,7 @@ public class DashboardReportService {
    */
   public DashboardReportDto createDashboardReport(DashboardReportDto dto) {
     permissionService.canManageReports();
+    validateUrlOrEmbeddedUuid(dto);
 
     boolean reportExists = dashboardReportRepository.existsByName(dto.getName());
     if (reportExists) {
@@ -194,6 +196,7 @@ public class DashboardReportService {
    */
   public DashboardReportDto updateDashboardReport(UUID id, DashboardReportDto dashboardReportDto) {
     permissionService.canManageReports();
+    validateUrlOrEmbeddedUuid(dashboardReportDto);
 
     if (dashboardReportDto.getId() != null && !Objects.equals(dashboardReportDto.getId(), id)) {
       throw new ValidationMessageException(new Message(
@@ -219,6 +222,14 @@ public class DashboardReportService {
   private void updateFrom(DashboardReportDto newReport, DashboardReport reportToUpdate) {
     reportToUpdate.updateFrom(newReport);
     reportToUpdate.setCategory(getCategoryOrThrow(newReport));
+  }
+
+  // A report needs either a URL or an Embedded UUID (Superset embedded dashboards use the latter).
+  private void validateUrlOrEmbeddedUuid(DashboardReportDto dto) {
+    if (StringUtils.isBlank(dto.getUrl()) && StringUtils.isBlank(dto.getEmbeddedUuid())) {
+      throw new ValidationMessageException(new Message(
+          DashboardReportMessageKeys.ERROR_URL_OR_EMBEDDED_UUID_REQUIRED));
+    }
   }
 
   /**

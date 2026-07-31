@@ -26,4 +26,6 @@ public class DashboardReportMessageKeys extends MessageKeys {
       "report.error.dashboardReport.save.right.failed";
   public static final String ERROR_COULD_NOT_DELETE_RIGHT =
       "report.error.dashboardReport.delete.right.failed";
+  public static final String ERROR_URL_OR_EMBEDDED_UUID_REQUIRED =
+      "report.error.dashboardReport.urlOrEmbeddedUuid.required";
 }

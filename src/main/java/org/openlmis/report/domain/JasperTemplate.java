@@ -15,7 +15,6 @@
 
 package org.openlmis.report.domain;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -80,7 +79,7 @@ public class JasperTemplate extends BaseEntity {
   @JoinTable(name = "jasper_templates_report_images",
       joinColumns = @JoinColumn(name = "jaspertemplateid", nullable = false),
       inverseJoinColumns = @JoinColumn(name = "reportimageid", nullable = false))
-  private Set<ReportImage> reportImages = new HashSet<>();
+  private Set<ReportImage> reportImages;
 
   private Boolean visible;
 
