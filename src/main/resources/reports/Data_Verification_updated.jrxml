@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Data_Verification" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
+	
+	<parameter name="startDate" class="java.lang.String">
+		<property name="displayName" value="Start Date"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	
+	<parameter name="endDate" class="java.lang.String">
+		<property name="displayName" value="End Date"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	
+	<parameter name="facility" class="java.lang.String">
+		<property name="displayName" value="Facility Name"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+
+	<parameter name="district" class="java.lang.String" nestedType="java.lang.String">
+		<property name="displayName" value="District"/>
+		<property name="required" value="false"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+
+	
+	<queryString language="SQL">
+		<![CDATA[
+SELECT
+    fac.name AS facility_name,
+    dis.name AS district,
+    facty.name AS facility_type,
+    facop.name AS ownership,
+    prog.name AS program,
+    ord.fullproductname AS product,
+    lots.lotcode AS batch_number,
+    stcli.quantity AS quantity,
+    stclir.name AS reason,
+    stclir.reasontype AS reason_type,
+    stcli.occurreddate AS occurreddate
+FROM stockmanagement.stock_card_line_items stcli
+LEFT JOIN stockmanagement.stock_card_line_item_reasons stclir ON stcli.reasonid = stclir.id
+LEFT JOIN stockmanagement.stock_cards stc ON stcli.stockcardid = stc.id
+LEFT JOIN referencedata.orderables ord ON stc.orderableid = ord.id
+LEFT JOIN referencedata.lots lots ON stc.lotid = lots.id
+LEFT JOIN referencedata.program_orderables po ON ord.id = po.orderableid
+LEFT JOIN referencedata.programs prog ON po.programid = prog.id
+LEFT JOIN referencedata.facilities fac ON stc.facilityid = fac.id
+LEFT JOIN referencedata.facility_types facty ON fac.typeid = facty.id
+LEFT JOIN referencedata.facility_operators facop ON fac.operatedbyid = facop.id
+LEFT JOIN referencedata.geographic_zones zone_fac ON zone_fac.id = fac.geographiczoneid
+LEFT JOIN referencedata.geographic_zones dis ON zone_fac.parentid = dis.id
+WHERE facty.id IN (
+    '0fbe2b5c-bd2b-46af-ba7f-63c14add59c7',
+    '1096849c-84cd-4a94-8a7a-25d9f6e3911b'
+)
+AND (
+    $P{startDate} IS NULL OR $P{startDate} = ''
+    OR stcli.occurreddate >= TO_TIMESTAMP(NULLIF($P{startDate}, ''), 'YYYY-MM-DD')
+)
+AND (
+    $P{endDate} IS NULL OR $P{endDate} = ''
+    OR stcli.occurreddate < (TO_TIMESTAMP(NULLIF($P{endDate}, ''), 'YYYY-MM-DD') + INTERVAL '1 day')
+)
+AND (
+    $P{facility} IS NULL OR $P{facility} = ''
+    OR fac.name = $P{facility}
+)
+AND (
+    $P{district} IS NULL OR $P{district} = ''
+    OR dis.name = $P{district}
+)
+ORDER BY dis.name, fac.name, prog.name, lots.lotcode, stcli.occurreddate]]>
+	</queryString>
+	
+	<field name="facility_name" class="java.lang.String"/>
+	<field name="district" class="java.lang.String"/>
+	<field name="facility_type" class="java.lang.String"/>
+	<field name="ownership" class="java.lang.String"/>
+	<field name="program" class="java.lang.String"/>
+	<field name="product" class="java.lang.String"/>
+	<field name="batch_number" class="java.lang.String"/>
+	<field name="quantity" class="java.lang.Integer"/>
+	<field name="reason" class="java.lang.String"/>
+	<field name="reason_type" class="java.lang.String"/>
+	<field name="occurreddate" class="java.sql.Timestamp"/>
+	
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	
+	<title>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="555" height="30"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data Verification Report]]></text>
+			</staticText>
+		</band>
+	</title>
+	
+	<pageHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="50" height="20"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Start Date:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="50" y="5" width="90" height="20"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{startDate} != null && !$P{startDate}.isEmpty() ? $P{startDate} : "All"]]></textFieldExpression>
+			</textField>
+			
+			<staticText>
+				<reportElement x="145" y="5" width="45" height="20"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[End Date:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="190" y="5" width="90" height="20"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{endDate} != null && !$P{endDate}.isEmpty() ? $P{endDate} : "All"]]></textFieldExpression>
+			</textField>
+			
+			<staticText>
+				<reportElement x="285" y="5" width="35" height="20"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="320" y="5" width="110" height="20"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{facility} != null && !$P{facility}.isEmpty() ? $P{facility} : "All"]]></textFieldExpression>
+			</textField>
+			
+			<textField>
+				<reportElement x="435" y="5" width="120" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="65" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="65" y="0" width="40" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[District]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="105" y="0" width="45" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility Type]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="150" y="0" width="40" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Ownership]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="190" y="0" width="40" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Program]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="230" y="0" width="90" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Product]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="320" y="0" width="45" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Batch No.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="365" y="0" width="30" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Quantity(Units)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="395" y="0" width="45" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Reason]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="440" y="0" width="40" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Reason Type]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="480" y="0" width="75" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Occurred Date]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="65" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facility_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="65" y="0" width="40" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{district}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="105" y="0" width="45" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facility_type}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="150" y="0" width="40" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ownership}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="190" y="0" width="40" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{program}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="230" y="0" width="90" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{product}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="320" y="0" width="45" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{batch_number}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="365" y="0" width="30" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{quantity}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="395" y="0" width="45" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{reason}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="440" y="0" width="40" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{reason_type}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="480" y="0" width="75" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{occurreddate} == null ? "" : new java.text.SimpleDateFormat("dd MMM yyyy").format($F{occurreddate})]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	
+	<pageFooter>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="400" y="0" width="155" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	
+	<summary>
+		<band height="50" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="50">
+					<printWhenExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()==0)]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[There is no data for the indicated parameters.]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

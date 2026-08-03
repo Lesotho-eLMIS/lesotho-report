@@ -1,0 +1,428 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Stockout_Report" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
+	
+	<parameter name="startDate" class="java.lang.String">
+		<property name="displayName" value="Start Date"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	
+	<parameter name="endDate" class="java.lang.String">
+		<property name="displayName" value="End Date"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	
+	<parameter name="facility" class="java.lang.String">
+		<property name="displayName" value="Facility Name"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="program" class="java.lang.String">
+		<property name="displayName" value="Program"/>
+		<property name="required" value="false"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+
+
+
+	<parameter name="district" class="java.lang.String" nestedType="java.lang.String">
+		<property name="displayName" value="District"/>
+		<property name="required" value="false"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+
+	
+	<parameter name="userId" class="java.lang.String">
+		<property name="displayName" value="User ID"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	
+	<queryString language="SQL"><![CDATA[
+		
+WITH daily AS (
+    SELECT
+        dis.name                        AS district_name,
+        fac.id                          AS facility_id,
+        fac.name                        AS facility_name,
+        facty.name                      AS facility_type_name,
+        prog.id                         AS program_id,
+        prog.name                       AS program_name,
+        ord.id                          AS orderable_id,
+        ord.fullproductname             AS product_name,
+        stcli.occurreddate::date        AS transaction_date,
+        SUM(
+            CASE
+                WHEN COALESCE(stclire.reasontype, 'CREDIT') = 'CREDIT' THEN stcli.quantity
+                WHEN stclire.reasontype = 'DEBIT' THEN -stcli.quantity
+                ELSE 0
+            END
+        ) AS daily_movement_qty
+    FROM stockmanagement.stock_card_line_items stcli
+    LEFT JOIN stockmanagement.stock_card_line_item_reasons stclire ON stcli.reasonid = stclire.id
+    JOIN stockmanagement.stock_cards stc ON stcli.stockcardid = stc.id
+    JOIN referencedata.orderables ord ON stc.orderableid = ord.id
+    JOIN referencedata.facilities fac ON stc.facilityid = fac.id
+    LEFT JOIN referencedata.geographic_zones zone_fac ON zone_fac.id = fac.geographiczoneid
+    LEFT JOIN referencedata.geographic_zones dis ON zone_fac.parentid = dis.id
+    LEFT JOIN referencedata.facility_types facty ON fac.typeid = facty.id
+    LEFT JOIN referencedata.program_orderables po ON po.orderableid = ord.id
+    LEFT JOIN referencedata.programs prog ON po.programid = prog.id
+    WHERE EXISTS (
+        SELECT 1 
+        FROM referencedata.right_assignments ra
+        WHERE ra.rightname = 'STOCK_CARDS_VIEW'
+        AND ra.userId = $P{userId}::uuid
+        AND ra.facilityid = fac.id
+    )
+    AND ($P{startDate} IS NULL OR $P{startDate} = '' OR $P{startDate} = 'undefined' OR stcli.occurreddate::date >= TO_TIMESTAMP(NULLIF($P{startDate}, ''), 'YYYY-MM-DD')::date)
+    AND ($P{endDate} IS NULL OR $P{endDate} = '' OR $P{endDate} = 'undefined' OR stcli.occurreddate::date <= TO_TIMESTAMP(NULLIF($P{endDate}, ''), 'YYYY-MM-DD')::date)
+    AND ($P{facility} IS NULL OR $P{facility} = '' OR $P{facility} = 'undefined' OR fac.name = $P{facility})
+    AND ($P{program} IS NULL OR $P{program} = '' OR $P{program} = 'undefined' OR prog.name = $P{program})
+    AND ($P{district} IS NULL OR $P{district} = '' OR $P{district} = 'undefined' OR dis.name = $P{district})
+    GROUP BY
+        dis.name,
+        fac.id, fac.name, facty.name,
+        prog.id, prog.name,
+        ord.id, ord.fullproductname,
+        stcli.occurreddate::date
+),
+balances AS (
+    SELECT
+        d.*,
+        SUM(d.daily_movement_qty) OVER (
+            PARTITION BY d.facility_id, d.orderable_id
+            ORDER BY d.transaction_date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS running_balance
+    FROM daily d
+),
+marked AS (
+    SELECT
+        b.*,
+        LAG(b.running_balance) OVER (
+            PARTITION BY b.facility_id, b.orderable_id
+            ORDER BY b.transaction_date
+        ) AS prev_balance,
+        (b.running_balance <= 0) AS is_stockout
+    FROM balances b
+),
+episodes AS (
+    SELECT
+        m.*,
+        CASE
+            WHEN m.is_stockout = TRUE
+             AND COALESCE(m.prev_balance > 0, TRUE) = TRUE
+            THEN 1 ELSE 0
+        END AS is_start
+    FROM marked m
+),
+episode_id AS (
+    SELECT
+        e.*,
+        SUM(e.is_start) OVER (
+            PARTITION BY e.facility_id, e.orderable_id
+            ORDER BY e.transaction_date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS stockout_group
+    FROM episodes e
+    WHERE e.is_stockout = TRUE
+),
+stockout_summary AS (
+    SELECT
+        district_name,
+        facility_id,
+        facility_name,
+        facility_type_name,
+        program_id,
+        program_name,
+        orderable_id,
+        product_name,
+        MIN(transaction_date)   AS stockout_start_date,
+        MAX(transaction_date)   AS last_stockout_date,
+        stockout_group
+    FROM episode_id
+    GROUP BY
+        district_name,
+        facility_id,
+        facility_name,
+        facility_type_name,
+        program_id,
+        program_name,
+        orderable_id,
+        product_name,
+        stockout_group
+),
+final AS (
+    SELECT
+        s.*,
+        (
+            SELECT MIN(b2.transaction_date)
+            FROM balances b2
+            WHERE b2.facility_id   = s.facility_id
+              AND b2.orderable_id  = s.orderable_id
+              AND b2.transaction_date > s.last_stockout_date
+              AND b2.running_balance > 0
+        ) AS stockout_end_date
+    FROM stockout_summary s
+)
+SELECT
+    district_name,
+    facility_name,
+    facility_type_name,
+    program_name,
+    product_name,
+    stockout_start_date,
+    stockout_end_date,
+    GREATEST(
+        (COALESCE(stockout_end_date, CURRENT_DATE) - stockout_start_date)::int,
+        0
+    ) AS days_out_of_stock
+FROM final
+ORDER BY district_name, facility_name, program_name, product_name, stockout_start_date
+	]]></queryString>
+	
+	<field name="district_name" class="java.lang.String"/>
+	<field name="facility_name" class="java.lang.String"/>
+	<field name="facility_type_name" class="java.lang.String"/>
+	<field name="program_name" class="java.lang.String"/>
+	<field name="product_name" class="java.lang.String"/>
+	<field name="stockout_start_date" class="java.sql.Date"/>
+	<field name="stockout_end_date" class="java.sql.Date"/>
+	<field name="days_out_of_stock" class="java.lang.Integer"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	
+	<title>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement x="180" y="5" width="195" height="30"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Stock Out Report]]></text>
+			</staticText>
+		</band>
+	</title>
+	
+	<pageHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="50" height="20"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Start Date:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="50" y="5" width="90" height="20"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{startDate} != null && !$P{startDate}.isEmpty() && !$P{startDate}.equals("undefined") ? $P{startDate} : "All"]]></textFieldExpression>
+			</textField>
+			
+			<staticText>
+				<reportElement x="145" y="5" width="45" height="20"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[End Date:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="190" y="5" width="90" height="20"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{endDate} != null && !$P{endDate}.isEmpty() && !$P{endDate}.equals("undefined") ? $P{endDate} : "All"]]></textFieldExpression>
+			</textField>
+			
+			<staticText>
+				<reportElement x="285" y="5" width="35" height="20"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="320" y="5" width="130" height="20"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{facility} != null && !$P{facility}.isEmpty() && !$P{facility}.equals("undefined") ? $P{facility} : "All"]]></textFieldExpression>
+			</textField>
+			
+			<textField>
+				<reportElement x="455" y="5" width="100" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="55" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[District]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="55" y="0" width="75" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="130" y="0" width="55" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility Type]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="185" y="0" width="60" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Program]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="245" y="0" width="130" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Product]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="375" y="0" width="60" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Stockout Start]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="435" y="0" width="60" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Stockout End]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="495" y="0" width="60" height="30" backcolor="#D3D3D3"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Days Out]]></text>
+			</staticText>
+			</band>
+	</columnHeader>
+	
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="55" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{district_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="55" y="0" width="75" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facility_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="130" y="0" width="55" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facility_type_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="185" y="0" width="60" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{program_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="245" y="0" width="130" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{product_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="375" y="0" width="60" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{stockout_start_date} == null ? "" : new java.text.SimpleDateFormat("dd MMM yyyy").format($F{stockout_start_date})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="435" y="0" width="60" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{stockout_end_date} == null ? "Ongoing" : new java.text.SimpleDateFormat("dd MMM yyyy").format($F{stockout_end_date})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="495" y="0" width="60" height="20"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{days_out_of_stock}]]></textFieldExpression>
+			</textField>
+			</band>
+	</detail>
+	
+	<pageFooter>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="400" y="0" width="155" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	
+	<summary>
+		<band height="50" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="50">
+					<printWhenExpression><![CDATA[Boolean.valueOf($V{REPORT_COUNT}.intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[There is no data for the indicated parameters.]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>
