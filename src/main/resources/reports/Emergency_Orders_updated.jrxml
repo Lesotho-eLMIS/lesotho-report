@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.21.5.final using JasperReports Library version 6.21.5-74d586df47b25dbd05bd0957999819196e59934a  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Emergency_Orders" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="ee100000-0000-0000-0000-000000000001" whenNoDataType="AllSectionsNoDetail">
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
+	<parameter name="startDate" class="java.lang.String">
+        <property name="displayName" value="Start Date"/>
+        <defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+    </parameter>
+    
+    <parameter name="endDate" class="java.lang.String">
+        <property name="displayName" value="End Date"/>
+        <defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+    </parameter>
+    
+    <parameter name="facility" class="java.lang.String" nestedType="java.lang.String">
+        <property name="displayName" value="Facility"/>
+        <property name="required" value="false"/>
+        <defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+    </parameter>
+
+	<parameter name="district" class="java.lang.String" nestedType="java.lang.String">
+		<property name="displayName" value="District"/>
+		<property name="required" value="false"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+
+	<queryString language="SQL">
+		<![CDATA[SELECT
+    CASE
+        WHEN LOWER(COALESCE(dis.name, '')) = 'lesotho' THEN geoz.name
+        ELSE COALESCE(dis.name, geoz.name)
+    END                                                     AS "District",
+    fac.name                                                AS "Facility Name",
+    facty.name                                              AS facility_type,
+    facop.name                                              AS facility_operator,
+    prog.name                                               AS program,
+    ord.fullproductname                                     AS full_product_name,
+    reqli.requestedquantity                                 AS "Quantity Requested",
+    req.status,
+    TO_CHAR(req.createddate::timestamp, 'DD Month YYYY')    AS "Occurred Date",
+    period.name                                             AS "Reporting Period"
+FROM requisition.requisitions req
+LEFT JOIN referencedata.facilities fac
+    ON req.facilityid = fac.id
+LEFT JOIN referencedata.facility_types facty
+    ON fac.typeid = facty.id
+LEFT JOIN referencedata.facility_operators facop
+    ON fac.operatedbyid = facop.id
+LEFT JOIN referencedata.programs prog
+    ON req.programid = prog.id
+LEFT JOIN referencedata.geographic_zones geoz
+    ON geoz.id = fac.geographiczoneid
+LEFT JOIN referencedata.geographic_zones dis
+    ON geoz.parentid = dis.id
+LEFT JOIN referencedata.processing_periods period
+    ON req.processingperiodid = period.id
+LEFT JOIN requisition.requisition_line_items reqli
+    ON req.id = reqli.requisitionid
+LEFT JOIN referencedata.orderables ord
+    ON reqli.orderableid = ord.id
+WHERE req.emergency = true
+AND req.status IN ('APPROVED')
+AND (
+    $P{startDate} IS NULL OR $P{startDate} = '' OR $P{startDate} = 'undefined'
+    OR req.createddate >= TO_TIMESTAMP(NULLIF($P{startDate}, ''), 'YYYY-MM-DD')
+)
+AND (
+    $P{endDate} IS NULL OR $P{endDate} = '' OR $P{endDate} = 'undefined'
+    OR req.createddate < (TO_TIMESTAMP(NULLIF($P{endDate}, ''), 'YYYY-MM-DD') + INTERVAL '1 day')
+)
+AND (
+    $P{facility} IS NULL OR $P{facility} = '' OR $P{facility} = 'undefined'
+    OR fac.name = $P{facility}
+)
+AND (
+    $P{district} IS NULL OR $P{district} = '' OR $P{district} = 'undefined'
+    OR CASE
+        WHEN LOWER(COALESCE(dis.name, '')) = 'lesotho' THEN geoz.name
+        ELSE COALESCE(dis.name, geoz.name)
+       END = $P{district}
+)
+ORDER BY
+    CASE
+        WHEN LOWER(COALESCE(dis.name, '')) = 'lesotho' THEN geoz.name
+        ELSE COALESCE(dis.name, geoz.name)
+    END,
+    fac.name,
+    prog.name,
+    period.name]]>
+	</queryString>
+	<field name="District" class="java.lang.String"/>
+	<field name="Facility Name" class="java.lang.String"/>
+	<field name="facility_type" class="java.lang.String"/>
+	<field name="facility_operator" class="java.lang.String"/>
+	<field name="program" class="java.lang.String"/>
+	<field name="full_product_name" class="java.lang.String"/>
+	<field name="Quantity Requested" class="java.lang.Integer"/>
+	<field name="status" class="java.lang.String"/>
+	<field name="Occurred Date" class="java.lang.String"/>
+	<field name="Reporting Period" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="60" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="15" width="470" height="30" uuid="ee100001-0000-0000-0000-000000000001"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Emergency Orders Report]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="50" height="20" uuid="ee100040-0000-0000-0000-000000000040"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Start Date:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="50" y="5" width="80" height="20" uuid="ee100041-0000-0000-0000-000000000041"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{startDate} != null && !$P{startDate}.isEmpty() ? $P{startDate} : "All"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="133" y="5" width="45" height="20" uuid="ee100043-0000-0000-0000-000000000043"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[End Date:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="178" y="5" width="80" height="20" uuid="ee100044-0000-0000-0000-000000000044"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{endDate} != null && !$P{endDate}.isEmpty() ? $P{endDate} : "All"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="261" y="5" width="45" height="20" uuid="ee100045-0000-0000-0000-000000000045"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Facility:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="306" y="5" width="130" height="20" uuid="ee100046-0000-0000-0000-000000000046"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{facility} != null ? $P{facility} : "All"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="438" y="5" width="117" height="20" uuid="ee100042-0000-0000-0000-000000000042"/>
+				<textElement textAlignment="Right">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of " + $V{PAGE_COUNT}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="50" height="30" backcolor="#D3D3D3" uuid="ee210001-0000-0000-0000-000000000000"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[District]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="50" y="0" width="75" height="30" backcolor="#D3D3D3" uuid="ee210002-0000-0000-0000-000000000001"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Facility Name]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="125" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="ee210003-0000-0000-0000-000000000002"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Fac. Type]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="165" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="ee210004-0000-0000-0000-000000000003"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Operator]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="205" y="0" width="45" height="30" backcolor="#D3D3D3" uuid="ee210005-0000-0000-0000-000000000004"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Program]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="250" y="0" width="95" height="30" backcolor="#D3D3D3" uuid="ee210006-0000-0000-0000-000000000005"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Product]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="345" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="ee210007-0000-0000-0000-000000000006"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Qty Requested]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="385" y="0" width="40" height="30" backcolor="#D3D3D3" uuid="ee210008-0000-0000-0000-000000000007"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Status]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="425" y="0" width="65" height="30" backcolor="#D3D3D3" uuid="ee210009-0000-0000-0000-000000000008"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Occurred Date]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="490" y="0" width="65" height="30" backcolor="#D3D3D3" uuid="ee210010-0000-0000-0000-000000000009"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Reporting Period]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="20" uuid="ee310001-0000-0000-0000-000000000000"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{District}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="50" y="0" width="75" height="20" uuid="ee310002-0000-0000-0000-000000000001"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{Facility Name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="125" y="0" width="40" height="20" uuid="ee310003-0000-0000-0000-000000000002"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{facility_type}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="165" y="0" width="40" height="20" uuid="ee310004-0000-0000-0000-000000000003"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{facility_operator}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="205" y="0" width="45" height="20" uuid="ee310005-0000-0000-0000-000000000004"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{program}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="250" y="0" width="95" height="20" uuid="ee310006-0000-0000-0000-000000000005"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{full_product_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="345" y="0" width="40" height="20" uuid="ee310007-0000-0000-0000-000000000006"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{Quantity Requested}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="385" y="0" width="40" height="20" uuid="ee310008-0000-0000-0000-000000000007"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="425" y="0" width="65" height="20" uuid="ee310009-0000-0000-0000-000000000008"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{Occurred Date}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="490" y="0" width="65" height="20" uuid="ee310010-0000-0000-0000-000000000009"/>
+				<box><topPen lineWidth="1.0"/><leftPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/><rightPen lineWidth="1.0"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{Reporting Period}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="400" y="0" width="155" height="20" uuid="ee300060-0000-0000-0000-000000000060"/>
+				<textElement textAlignment="Right">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of " + $V{PAGE_COUNT}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="20" splitType="Stretch"/>
+	</summary>
+</jasperReport>
