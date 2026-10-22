@@ -1,0 +1,884 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Stock_Status" pageWidth="1190" pageHeight="842" orientation="Landscape" columnWidth="1150" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail" uuid="abf825da-8a25-5960-9a13-291e0a6ccf01">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
+	<property name="lesotho.report.name" value="Stock Status"/>
+	<property name="lesotho.report.description" value="Reporting month and the two months before it: opening balance, closing stock on hand, receipts, consumption and months of stock"/>
+	<property name="lesotho.report.category" value="Default Category"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.1" value="title"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.2" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.3" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.4" value="summary"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.3" value="title"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xls.detect.cell.type" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.remove.empty.space.between.rows" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.remove.empty.space.between.columns" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+	<property name="net.sf.jasperreports.export.xls.one.page.per.sheet" value="false"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.2" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.3" value="title"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xlsx.detect.cell.type" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.remove.empty.space.between.rows" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.remove.empty.space.between.columns" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.white.page.background" value="false"/>
+	<property name="net.sf.jasperreports.export.xlsx.one.page.per.sheet" value="false"/>
+	<property name="net.sf.jasperreports.export.html.remove.empty.space.between.rows" value="true"/>
+	<style name="Zebra" mode="Transparent"/>
+	<parameter name="startDate" class="java.lang.String">
+		<property name="displayName" value="Start Date"/>
+		<property name="required" value="false"/>
+		<parameterDescription><![CDATA[datepickers]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="endDate" class="java.lang.String">
+		<property name="displayName" value="End Date"/>
+		<property name="required" value="false"/>
+		<parameterDescription><![CDATA[datepickers]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="district" class="java.lang.String">
+		<property name="displayName" value="District"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/geographicZones?page=0&amp;size=1000"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="facility" class="java.lang.String">
+		<property name="displayName" value="Facility"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/facilities"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<parameterDescription><![CDATA[multipleselect]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="program" class="java.lang.String">
+		<property name="displayName" value="Program"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/programs"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<parameterDescription><![CDATA[multipleselect]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="product" class="java.lang.String">
+		<property name="displayName" value="Product"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/orderables?page=0&amp;size=5000"/>
+		<property name="selectProperty" value="fullProductName"/>
+		<property name="displayProperty" value="fullProductName"/>
+		<parameterDescription><![CDATA[multipleselect]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[WITH params AS (
+    SELECT
+        CASE WHEN p.start_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN p.start_date::date END AS start_date,
+        CASE WHEN p.end_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN p.end_date::date END AS end_date,
+        NULLIF(NULLIF(NULLIF(TRIM(p.district), ''), 'undefined'), 'null') AS district,
+        CASE WHEN COALESCE(TRIM(p.facilities), '') IN ('', 'undefined', 'null') THEN NULL
+             ELSE NULLIF(ARRAY(SELECT TRIM(x) FROM unnest(string_to_array(p.facilities, '|')) AS x WHERE TRIM(x) <> ''), '{}') END AS facilities,
+        CASE WHEN COALESCE(TRIM(p.programs), '') IN ('', 'undefined', 'null') THEN NULL
+             ELSE NULLIF(ARRAY(SELECT TRIM(x) FROM unnest(string_to_array(p.programs, '|')) AS x WHERE TRIM(x) <> ''), '{}') END AS programs,
+        CASE WHEN COALESCE(TRIM(p.products), '') IN ('', 'undefined', 'null') THEN NULL
+             ELSE NULLIF(ARRAY(SELECT TRIM(x) FROM unnest(string_to_array(p.products, '|')) AS x WHERE TRIM(x) <> ''), '{}') END AS products
+    FROM (SELECT $P{startDate}::text AS start_date,
+           $P{endDate}::text AS end_date,
+           $P{district}::text AS district,
+           $P{facility}::text AS facilities,
+           $P{program}::text AS programs,
+           $P{product}::text AS products
+          OFFSET 0) AS p
+),
+facility_info AS (
+    -- One row per facility with its district, resolved the same way as the reports page:
+    -- the nearest zone named after one of the ten districts, else the zone at the district
+    -- level, else the facility's parent zone (or its own zone when the parent is Lesotho).
+    SELECT
+        f.id,
+        f.name,
+        f.code,
+        f.active,
+        ft.id AS type_id,
+        ft.name AS type_name,
+        fo.name AS operator_name,
+        COALESCE(
+            (SELECT z.name
+             FROM unnest(ARRAY[z1.name, z2.name, z3.name, z4.name]) WITH ORDINALITY AS z(name, ord)
+             WHERE regexp_replace(LOWER(z.name), '[^a-z]', '', 'g') IN ('berea', 'buthabuthe', 'leribe', 'mafeteng', 'maseru', 'mohaleshoek', 'mokhotlong', 'qachasneck', 'qachasnek', 'quthing', 'thabatseka')
+             ORDER BY z.ord
+             LIMIT 1),
+            CASE
+                WHEN LOWER(l1.code) = 'district' OR l1.levelnumber = 3 THEN z1.name
+                WHEN LOWER(l2.code) = 'district' OR l2.levelnumber = 3 THEN z2.name
+                WHEN LOWER(l3.code) = 'district' OR l3.levelnumber = 3 THEN z3.name
+            END,
+            CASE WHEN z2.id IS NULL OR LOWER(z2.name) = 'lesotho' THEN z1.name ELSE z2.name END
+        ) AS district,
+        ARRAY[LOWER(z1.name), LOWER(z2.name), LOWER(z3.name), LOWER(z4.name)] AS zones
+    FROM referencedata.facilities f
+    LEFT JOIN referencedata.facility_types ft ON ft.id = f.typeid
+    LEFT JOIN referencedata.facility_operators fo ON fo.id = f.operatedbyid
+    LEFT JOIN referencedata.geographic_zones z1 ON z1.id = f.geographiczoneid
+    LEFT JOIN referencedata.geographic_levels l1 ON l1.id = z1.levelid
+    LEFT JOIN referencedata.geographic_zones z2 ON z2.id = z1.parentid
+    LEFT JOIN referencedata.geographic_levels l2 ON l2.id = z2.levelid
+    LEFT JOIN referencedata.geographic_zones z3 ON z3.id = z2.parentid
+    LEFT JOIN referencedata.geographic_levels l3 ON l3.id = z3.levelid
+    LEFT JOIN referencedata.geographic_zones z4 ON z4.id = z3.parentid
+),
+selected_facilities AS (
+    -- Facilities matching the District and Facility filters
+    SELECT fi.*
+    FROM facility_info fi
+    CROSS JOIN params p
+    WHERE (p.district IS NULL
+           OR LOWER(p.district) = LOWER(fi.district)
+           OR LOWER(p.district) = ANY (fi.zones))
+      AND (p.facilities IS NULL OR fi.name = ANY (p.facilities))
+),
+products AS (
+    -- Latest version of each product (products are versioned)
+    SELECT DISTINCT ON (o.id) o.id, o.code, o.fullproductname
+    FROM referencedata.orderables o
+    ORDER BY o.id, o.versionnumber DESC
+),
+current_month AS (
+    -- P0: each regular monthly requisition in the selected months
+    SELECT
+        per.name AS reporting_month,
+        per.startdate,
+        per.enddate,
+        per.processingscheduleid,
+        r.facilityid,
+        r.programid,
+        r.id AS requisition_p0,
+        per.id AS period_p0
+    FROM requisition.requisitions r
+    JOIN selected_facilities sf ON sf.id = r.facilityid
+    JOIN referencedata.processing_periods per ON per.id = r.processingperiodid
+    JOIN referencedata.processing_schedules ps ON ps.id = per.processingscheduleid
+    CROSS JOIN params p
+    LEFT JOIN referencedata.programs prog ON prog.id = r.programid
+    WHERE ps.name = 'Monthly'
+      AND r.emergency = false
+      AND (p.start_date IS NULL OR per.startdate >= p.start_date)
+      AND (p.end_date IS NULL OR per.startdate <= p.end_date)
+      -- No dates chosen: only the latest month that has requisitions (not every month ever)
+      AND (p.start_date IS NOT NULL OR p.end_date IS NOT NULL OR per.startdate = (
+            SELECT MAX(per2.startdate)
+            FROM requisition.requisitions r2
+            JOIN referencedata.processing_periods per2 ON per2.id = r2.processingperiodid
+            JOIN referencedata.processing_schedules ps2 ON ps2.id = per2.processingscheduleid
+            WHERE ps2.name = 'Monthly' AND r2.emergency = false AND per2.startdate <= CURRENT_DATE))
+      AND (p.programs IS NULL OR prog.name = ANY (p.programs))
+),
+months AS (
+    -- P-1 and P-2: the two monthly periods before P0, and their regular requisitions
+    SELECT cm.*,
+        p1.id AS period_p1, p1.name AS reporting_month_p1, p1.startdate AS start_p1, p1.enddate AS end_p1,
+        p2.id AS period_p2, p2.name AS reporting_month_p2, p2.startdate AS start_p2, p2.enddate AS end_p2,
+        (SELECT r1.id FROM requisition.requisitions r1
+         WHERE r1.facilityid = cm.facilityid AND r1.programid = cm.programid
+           AND r1.processingperiodid = p1.id AND r1.emergency = false
+         ORDER BY r1.createddate DESC LIMIT 1) AS requisition_p1,
+        (SELECT r2.id FROM requisition.requisitions r2
+         WHERE r2.facilityid = cm.facilityid AND r2.programid = cm.programid
+           AND r2.processingperiodid = p2.id AND r2.emergency = false
+         ORDER BY r2.createddate DESC LIMIT 1) AS requisition_p2
+    FROM current_month cm
+    LEFT JOIN LATERAL (
+        SELECT pp.* FROM referencedata.processing_periods pp
+        WHERE pp.processingscheduleid = cm.processingscheduleid AND pp.startdate < cm.startdate
+        ORDER BY pp.startdate DESC LIMIT 1) p1 ON true
+    LEFT JOIN LATERAL (
+        SELECT pp.* FROM referencedata.processing_periods pp
+        WHERE pp.processingscheduleid = cm.processingscheduleid AND pp.startdate < cm.startdate
+        ORDER BY pp.startdate DESC OFFSET 1 LIMIT 1) p2 ON true
+),
+needed AS (
+    -- The facility/program/month combinations that need stock-card figures
+    SELECT DISTINCT m.facilityid, m.programid, x.period_id, x.startdate, x.enddate
+    FROM months m
+    CROSS JOIN LATERAL (VALUES (m.period_p0, m.startdate, m.enddate),
+                               (m.period_p1, m.start_p1, m.end_p1),
+                               (m.period_p2, m.start_p2, m.end_p2)) AS x(period_id, startdate, enddate)
+    WHERE x.period_id IS NOT NULL
+),
+needed_cards AS (
+    -- Stock cards (all batches) for those facility/program/months, limited to the selected products
+    SELECT n.period_id, n.startdate, n.enddate, sc.id AS card_id, sc.facilityid, sc.programid, sc.orderableid
+    FROM needed n
+    JOIN stockmanagement.stock_cards sc ON sc.facilityid = n.facilityid AND sc.programid = n.programid
+    CROSS JOIN params p
+    LEFT JOIN products pr ON pr.id = sc.orderableid
+    WHERE (p.products IS NULL OR pr.fullproductname = ANY (p.products))
+),
+moves AS (
+    -- QR: received from NDSO during the month;  TI: transfers in during the month
+    SELECT nc.period_id, nc.card_id,
+        SUM(CASE WHEN rsn.name = 'Receipts' AND scli.sourceid = '583bb7fa-496f-42d0-8858-529f0301565c' THEN scli.quantity ELSE 0 END) AS qr,
+        SUM(CASE WHEN scli.reasonid = 'e3fc3cf3-da18-44b0-a220-77c985202e06' THEN scli.quantity ELSE 0 END)
+          + COALESCE(SUM(adj.quantity), 0) AS ti
+    FROM needed_cards nc
+    JOIN stockmanagement.stock_card_line_items scli
+      ON scli.stockcardid = nc.card_id AND scli.occurreddate BETWEEN nc.startdate AND nc.enddate
+    LEFT JOIN stockmanagement.stock_card_line_item_reasons rsn ON rsn.id = scli.reasonid
+    LEFT JOIN (SELECT pili.stockcardlineitemid, SUM(pili.quantity) AS quantity
+               FROM stockmanagement.physical_inventory_line_item_adjustments pili
+               WHERE pili.reasonid = 'e3fc3cf3-da18-44b0-a220-77c985202e06'
+               GROUP BY pili.stockcardlineitemid) adj ON adj.stockcardlineitemid = scli.id
+    GROUP BY nc.period_id, nc.card_id
+),
+soh_days AS (
+    -- Official stock on hand per card per day (latest entry of the day)
+    SELECT DISTINCT ON (cs.stockcardid, cs.occurreddate) cs.stockcardid, cs.occurreddate, cs.stockonhand
+    FROM stockmanagement.calculated_stocks_on_hand cs
+    WHERE cs.stockcardid IN (SELECT card_id FROM needed_cards)
+      AND cs.occurreddate <= (SELECT MAX(enddate) FROM needed)
+    ORDER BY cs.stockcardid, cs.occurreddate, cs.processeddate DESC
+),
+soh_ranges AS (
+    -- Each balance is valid from its day until the next change
+    SELECT sd.*, LEAD(sd.occurreddate) OVER (PARTITION BY sd.stockcardid ORDER BY sd.occurreddate) AS next_day
+    FROM soh_days sd
+),
+stock_figures AS NOT MATERIALIZED (
+    -- Inlined so PostgreSQL (12+) can hash-join it to the report lines.
+    -- SH: closing stock on hand at the end of the month (all batches); QR and TI as above
+    SELECT nc.period_id, nc.facilityid, nc.programid, nc.orderableid,
+        SUM(sr.stockonhand) AS sh,
+        COALESCE(SUM(m.qr), 0) AS qr,
+        COALESCE(SUM(m.ti), 0) AS ti
+    FROM needed_cards nc
+    LEFT JOIN soh_ranges sr
+      ON sr.stockcardid = nc.card_id AND sr.occurreddate <= nc.enddate
+     AND (sr.next_day IS NULL OR sr.next_day > nc.enddate)
+    LEFT JOIN moves m ON m.period_id = nc.period_id AND m.card_id = nc.card_id
+    GROUP BY nc.period_id, nc.facilityid, nc.programid, nc.orderableid
+),
+lines AS (
+    -- One row per product on the P0 requisition
+    SELECT m.*, rli0.orderableid,
+        rli0.beginningbalance AS shl_p0, rli0.totalconsumedquantity AS mc_p0, rli0.averageconsumption AS amc_p0,
+        ROUND(rli0.stockonhand::numeric / NULLIF(rli0.averageconsumption, 0), 1) AS mos_p0,
+        rli0.maximumstockquantity AS msq_p0
+    FROM months m
+    JOIN requisition.requisition_line_items rli0 ON rli0.requisitionid = m.requisition_p0
+    WHERE COALESCE(rli0.skipped, false) = false
+)
+SELECT
+    sf.district,
+    sf.name AS facility,
+    sf.type_name AS facility_type,
+    prog.name AS program,
+    l.reporting_month,
+    pr.fullproductname AS product,
+    pr.code AS product_code,
+    rli2.beginningbalance::bigint AS shl_p2, f2.sh::bigint AS sh_p2, f2.qr::bigint AS qr_p2, f2.ti::bigint AS ti_p2,
+    rli2.totalconsumedquantity::bigint AS mc_p2, rli2.averageconsumption::bigint AS amc_p2,
+    ROUND(rli2.stockonhand::numeric / NULLIF(rli2.averageconsumption, 0), 1) AS mos_p2, rli2.maximumstockquantity::bigint AS msq_p2,
+    rli1.beginningbalance::bigint AS shl_p1, f1.sh::bigint AS sh_p1, f1.qr::bigint AS qr_p1, f1.ti::bigint AS ti_p1,
+    rli1.totalconsumedquantity::bigint AS mc_p1, rli1.averageconsumption::bigint AS amc_p1,
+    ROUND(rli1.stockonhand::numeric / NULLIF(rli1.averageconsumption, 0), 1) AS mos_p1, rli1.maximumstockquantity::bigint AS msq_p1,
+    (rli1.beginningbalance - f2.sh)::bigint AS var_p1,
+    l.shl_p0::bigint AS shl_p0, f0.sh::bigint AS sh_p0, f0.qr::bigint AS qr_p0, f0.ti::bigint AS ti_p0,
+    l.mc_p0::bigint AS mc_p0, l.amc_p0::bigint AS amc_p0, l.mos_p0, l.msq_p0::bigint AS msq_p0,
+    (l.shl_p0 - f1.sh)::bigint AS var_p0,
+    l.reporting_month_p1,
+    l.reporting_month_p2
+FROM lines l
+JOIN selected_facilities sf ON sf.id = l.facilityid
+CROSS JOIN params p
+LEFT JOIN referencedata.programs prog ON prog.id = l.programid
+LEFT JOIN products pr ON pr.id = l.orderableid
+LEFT JOIN stock_figures f0 ON f0.period_id = l.period_p0 AND f0.facilityid = l.facilityid AND f0.programid = l.programid AND f0.orderableid = l.orderableid
+LEFT JOIN stock_figures f1 ON f1.period_id = l.period_p1 AND f1.facilityid = l.facilityid AND f1.programid = l.programid AND f1.orderableid = l.orderableid
+LEFT JOIN stock_figures f2 ON f2.period_id = l.period_p2 AND f2.facilityid = l.facilityid AND f2.programid = l.programid AND f2.orderableid = l.orderableid
+LEFT JOIN requisition.requisition_line_items rli1 ON rli1.requisitionid = l.requisition_p1 AND rli1.orderableid = l.orderableid
+LEFT JOIN requisition.requisition_line_items rli2 ON rli2.requisitionid = l.requisition_p2 AND rli2.orderableid = l.orderableid
+WHERE (p.products IS NULL OR pr.fullproductname = ANY (p.products))
+ORDER BY sf.district, sf.name, prog.name, l.startdate, pr.fullproductname]]>
+	</queryString>
+	<field name="district" class="java.lang.String"/>
+	<field name="facility" class="java.lang.String"/>
+	<field name="facility_type" class="java.lang.String"/>
+	<field name="program" class="java.lang.String"/>
+	<field name="reporting_month" class="java.lang.String"/>
+	<field name="product" class="java.lang.String"/>
+	<field name="product_code" class="java.lang.String"/>
+	<field name="shl_p2" class="java.lang.Long"/>
+	<field name="sh_p2" class="java.lang.Long"/>
+	<field name="qr_p2" class="java.lang.Long"/>
+	<field name="ti_p2" class="java.lang.Long"/>
+	<field name="mc_p2" class="java.lang.Long"/>
+	<field name="amc_p2" class="java.lang.Long"/>
+	<field name="mos_p2" class="java.math.BigDecimal"/>
+	<field name="msq_p2" class="java.lang.Long"/>
+	<field name="shl_p1" class="java.lang.Long"/>
+	<field name="sh_p1" class="java.lang.Long"/>
+	<field name="qr_p1" class="java.lang.Long"/>
+	<field name="ti_p1" class="java.lang.Long"/>
+	<field name="mc_p1" class="java.lang.Long"/>
+	<field name="amc_p1" class="java.lang.Long"/>
+	<field name="mos_p1" class="java.math.BigDecimal"/>
+	<field name="msq_p1" class="java.lang.Long"/>
+	<field name="var_p1" class="java.lang.Long"/>
+	<field name="shl_p0" class="java.lang.Long"/>
+	<field name="sh_p0" class="java.lang.Long"/>
+	<field name="qr_p0" class="java.lang.Long"/>
+	<field name="ti_p0" class="java.lang.Long"/>
+	<field name="mc_p0" class="java.lang.Long"/>
+	<field name="amc_p0" class="java.lang.Long"/>
+	<field name="mos_p0" class="java.math.BigDecimal"/>
+	<field name="msq_p0" class="java.lang.Long"/>
+	<field name="var_p0" class="java.lang.Long"/>
+	<field name="reporting_month_p1" class="java.lang.String"/>
+	<field name="reporting_month_p2" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="1150" height="30" uuid="b1ba3fa2-a559-5efc-bb6c-c26f7c3e13a0"/>
+				<textElement textAlignment="Center"><font size="12" isBold="true"/></textElement>
+				<text><![CDATA[Stock Status]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="48" height="20" uuid="d3b960a6-dc8e-5433-a8fc-983ff243f3b4"/>
+				<textElement><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Start Date:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="48" y="5" width="119" height="20" uuid="4cf8d4e8-a587-54a0-9647-a32d8736efa5"/>
+				<textElement><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) != null ? ($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) : ((($P{startDate} == null || $P{startDate}.trim().isEmpty() || $P{startDate}.equals("undefined") || $P{startDate}.equals("null")) && ($P{endDate} == null || $P{endDate}.trim().isEmpty() || $P{endDate}.equals("undefined") || $P{endDate}.equals("null"))) ? "Latest month" : "All")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="171" y="5" width="40" height="20" uuid="58d23b05-0404-5ed6-abc3-06ebcb2a667c"/>
+				<textElement><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[End Date:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="211" y="5" width="127" height="20" uuid="b3dd8066-4f23-5991-9bde-972ad87c7601"/>
+				<textElement><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) != null ? ($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) : ((($P{startDate} == null || $P{startDate}.trim().isEmpty() || $P{startDate}.equals("undefined") || $P{startDate}.equals("null")) && ($P{endDate} == null || $P{endDate}.trim().isEmpty() || $P{endDate}.equals("undefined") || $P{endDate}.equals("null"))) ? "Latest month" : "All")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="342" y="5" width="40" height="20" uuid="03393ff5-247d-535c-bdbb-c89aff170aaf"/>
+				<textElement><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[District:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="382" y="5" width="127" height="20" uuid="cd96045e-1657-59f1-bab5-991995af2f06"/>
+				<textElement><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[($P{district} == null || $P{district}.trim().isEmpty() || $P{district}.equals("undefined") || $P{district}.equals("null")) ? "All" : $P{district}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="513" y="5" width="40" height="20" uuid="6bbb2c85-dad8-57b9-9e35-b5dc19ffa30a"/>
+				<textElement><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Facility:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="553" y="5" width="127" height="20" uuid="92456016-b819-5581-bf51-263a8f3fd186"/>
+				<textElement><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[($P{facility} == null || $P{facility}.trim().isEmpty() || $P{facility}.equals("undefined") || $P{facility}.equals("null")) ? "All" : ($P{facility}.split("\\|").length <= 4 ? $P{facility}.replace("|", ", ") : String.join(", ", java.util.Arrays.copyOfRange($P{facility}.split("\\|"), 0, 4)) + " and " + ($P{facility}.split("\\|").length - 4) + " more")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="684" y="5" width="36" height="20" uuid="f2c5c8a3-c2ae-5709-815b-8ef07c72ac2a"/>
+				<textElement><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Program:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="720" y="5" width="131" height="20" uuid="029cf302-b094-5b88-8a7d-c9483c7c13af"/>
+				<textElement><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[($P{program} == null || $P{program}.trim().isEmpty() || $P{program}.equals("undefined") || $P{program}.equals("null")) ? "All" : ($P{program}.split("\\|").length <= 4 ? $P{program}.replace("|", ", ") : String.join(", ", java.util.Arrays.copyOfRange($P{program}.split("\\|"), 0, 4)) + " and " + ($P{program}.split("\\|").length - 4) + " more")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="855" y="5" width="36" height="20" uuid="8fed962a-27a4-56e2-a396-33c9a87a0257"/>
+				<textElement><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Product:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="891" y="5" width="131" height="20" uuid="a0561cfe-4378-56b4-862a-cb49be72a5c2"/>
+				<textElement><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[($P{product} == null || $P{product}.trim().isEmpty() || $P{product}.equals("undefined") || $P{product}.equals("null")) ? "All" : ($P{product}.split("\\|").length <= 4 ? $P{product}.replace("|", ", ") : String.join(", ", java.util.Arrays.copyOfRange($P{product}.split("\\|"), 0, 4)) + " and " + ($P{product}.split("\\|").length - 4) + " more")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1030" y="5" width="120" height="20" uuid="c3a80ba2-e67d-5ae0-8bbd-598d047205f4"/>
+				<textElement textAlignment="Right"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="44" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="448" y="0" width="216" height="14" backcolor="#D3D3D3" uuid="c40123cc-7799-5d7a-a5de-9e5e26e49f2d"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[TWO MONTHS BEFORE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="664" y="0" width="243" height="14" backcolor="#D3D3D3" uuid="65269f0d-a87e-5a89-9ddb-6ed0d0a23042"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[PREVIOUS MONTH]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="907" y="0" width="243" height="14" backcolor="#D3D3D3" uuid="6d8a063b-78d3-5013-a82f-46b97fc81d11"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[REPORTING MONTH]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="55" height="44" backcolor="#D3D3D3" uuid="5324b3c7-a681-5424-bcd0-8128634abd07"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[District]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="55" y="0" width="84" height="44" backcolor="#D3D3D3" uuid="59458a81-606b-5641-8bfd-c1f79284502b"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Facility]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="139" y="0" width="50" height="44" backcolor="#D3D3D3" uuid="9cea204a-3dbb-5d35-9dc6-e7174269e52c"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Facility Type]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="189" y="0" width="54" height="44" backcolor="#D3D3D3" uuid="6ef37ce3-61fd-5761-b38e-b0a3e413e99c"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Program]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="243" y="0" width="45" height="44" backcolor="#D3D3D3" uuid="52285aac-e036-5c6e-acc0-37b21818ddd6"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Reporting Month]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="288" y="0" width="100" height="44" backcolor="#D3D3D3" uuid="909f5a1e-e9b0-549a-b43e-af292b4a3930"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Product]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="388" y="0" width="60" height="44" backcolor="#D3D3D3" uuid="061b7506-25cb-52bc-a531-9af97ae74d7f"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Code]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="448" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="3980a690-8fd4-5f85-b996-93a2daa734f6"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[SHL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="475" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="c144bfcd-7602-566a-9c51-d9e4cba2ae33"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[SH]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="502" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="f3fe7ae1-6fa3-5df4-abc7-d0ba8206d401"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[QR]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="529" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="5f163291-42f0-5ef3-bce3-e298c10d090d"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[TI]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="556" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="387df024-7038-5ff1-9173-4e781bb072ca"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="583" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="68448cd4-aeec-50e0-a357-ac2c874113b1"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[AMC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="610" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="89396662-0bd6-55e2-9e72-82e3e7270bd6"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MOS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="637" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="f7d07d38-82db-5887-b7b2-eba8b1383ef6"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MSQ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="664" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="50d875c4-0c93-5eb2-be38-e89981931935"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[SHL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="691" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="cb83ebe7-4a69-55c3-9f4e-7dbdd96606b7"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[SH]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="718" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="5b367f4b-e68a-5d2b-96bc-e5a2d7d1e660"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[QR]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="745" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="81e84335-3cfa-5b3a-8305-923512de6e3e"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[TI]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="772" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="d4b9b381-5ad0-5f74-803e-0fb95b402444"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="799" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="4137ed46-3f17-5113-b9c4-0d3c1e56d11c"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[AMC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="826" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="e440ab90-16a3-5f5c-8662-a6380ba570c1"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MOS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="853" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="3ad8dbb0-edee-592c-92f7-754f28f1f371"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MSQ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="880" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="be169fa0-2086-53dd-8096-6973fbf635bd"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Var.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="907" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="b536f508-b2d4-5b82-886b-9efc34d47c28"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[SHL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="934" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="502c9aa3-3f53-5cac-b5ee-88d26e0767f5"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[SH]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="961" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="c04c8dce-e870-59ba-88ad-7e03d6bc6b7f"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[QR]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="988" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="d2217e04-f837-53e9-8769-33a6d93abf9e"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[TI]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1015" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="bc510b2e-3578-5de8-b882-86b4a78713c5"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1042" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="aeb9ae84-a78d-5734-b175-866307756276"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[AMC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1069" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="5b8fb053-45cf-5bb0-990f-0b5308994958"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MOS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1096" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="c11c5dcb-36c0-5416-beb2-7c7f11929f57"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[MSQ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1123" y="14" width="27" height="30" backcolor="#D3D3D3" uuid="38aa4d82-0d6d-5d95-bc82-7b36f8e3e780"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Var.]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="0" y="0" width="55" height="20" uuid="8ce570d4-974c-5a9a-9dcc-942404533fbd"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{district}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="55" y="0" width="84" height="20" uuid="e33158fc-e039-519d-befd-3f3c69e5bb00"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{facility}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="139" y="0" width="50" height="20" uuid="12020e47-87bd-51d1-a2b6-de878a2a7910"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{facility_type}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="189" y="0" width="54" height="20" uuid="1b988b71-1f92-5a71-8891-64ba789da3b2"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{program}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="243" y="0" width="45" height="20" uuid="4d827601-bcb4-5fc2-ba11-0b8e86d5709a"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{reporting_month}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="288" y="0" width="100" height="20" uuid="1a0d7537-0e0a-5f38-99f7-65f25894c765"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{product}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="388" y="0" width="60" height="20" uuid="1c39106b-3d00-57e7-91a3-5b1846431372"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{product_code}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="448" y="0" width="27" height="20" uuid="30cd6e2e-6908-509d-b74d-ddcd955d2130"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{shl_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="475" y="0" width="27" height="20" uuid="2b6e5811-f545-5afd-922a-abf09ae7bece"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{sh_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="502" y="0" width="27" height="20" uuid="bc45b805-122c-5753-bdfa-6d60c6e0d6e5"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{qr_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="529" y="0" width="27" height="20" uuid="8e85ae1f-d1a8-5377-bf6a-c3a5f9419d6a"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{ti_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="556" y="0" width="27" height="20" uuid="406ca212-a56b-54bd-a28d-1d68442e1fed"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{mc_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="583" y="0" width="27" height="20" uuid="0fc6ed46-e7bf-53c3-ae97-4fc1484051e9"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{amc_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="0.0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="610" y="0" width="27" height="20" uuid="f60260af-0251-5e1d-b63f-5525c3306427"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{mos_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="637" y="0" width="27" height="20" uuid="1fe3b1d4-808d-5009-9f8d-c1a4f87fb6c9"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{msq_p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="664" y="0" width="27" height="20" uuid="ce1fe29a-d8bd-5691-9035-47b560c06440"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{shl_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="691" y="0" width="27" height="20" uuid="d898a32f-8c1d-56d2-97a6-a35c5bde7757"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{sh_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="718" y="0" width="27" height="20" uuid="3332dab2-40ed-5057-ab49-f524b730775c"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{qr_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="745" y="0" width="27" height="20" uuid="27998bc1-4655-53a0-9c2e-af557cabb27e"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{ti_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="772" y="0" width="27" height="20" uuid="a47a3a1f-8bea-51f5-bc01-26a2fed6166c"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{mc_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="799" y="0" width="27" height="20" uuid="b87403f3-edae-5234-8859-1d160ef8de69"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{amc_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="0.0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="826" y="0" width="27" height="20" uuid="faab7c12-fa75-51f8-af32-8c9be2976699"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{mos_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="853" y="0" width="27" height="20" uuid="af753b7e-fbca-5278-ac78-f9b347dcdbed"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{msq_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="880" y="0" width="27" height="20" uuid="d5d85693-ac19-596f-a1b3-4f17d294cd25"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{var_p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="907" y="0" width="27" height="20" uuid="ae5d0ae6-075f-5207-9390-04a1bda83f8b"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{shl_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="934" y="0" width="27" height="20" uuid="af18dbed-6d89-513a-b5df-2a512c846c90"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{sh_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="961" y="0" width="27" height="20" uuid="32a0795d-5344-574f-a89c-524acecf63e8"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{qr_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="988" y="0" width="27" height="20" uuid="ebbafbe3-d2d4-522f-83bb-fa62a3d66cb3"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{ti_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1015" y="0" width="27" height="20" uuid="ce4656cb-98f2-5494-b54e-ce0b2588f284"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{mc_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1042" y="0" width="27" height="20" uuid="9b4bbee9-2bb5-5d46-96f3-634ddb7ebbdb"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{amc_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="0.0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1069" y="0" width="27" height="20" uuid="de15aae4-1489-524e-8dbc-e9ce37299854"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{mos_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1096" y="0" width="27" height="20" uuid="480d3849-e27f-5bb6-8626-5e0a510026b9"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{msq_p0}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1123" y="0" width="27" height="20" uuid="68f2e40e-449a-53ce-98f5-07e7d2bce7eb"/>
+				<box topPadding="1" leftPadding="2" bottomPadding="1" rightPadding="2"><pen lineWidth="1.0" lineColor="#000000"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{var_p0}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="18" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="2" width="990" height="14" forecolor="#444444" uuid="fa62659a-ebc5-5169-8d7b-8236c8ce6e7c"/>
+				<textElement verticalAlignment="Middle"><font size="6"/></textElement>
+				<text><![CDATA[SHL = opening balance (requisition) | SH = closing stock on hand (stock cards) | QR = received from NDSO | TI = transfers in | MC = consumption | AMC = average monthly consumption | MOS = months of stock | MSQ = maximum stock quantity | Var. = opening balance minus previous month's closing stock]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="990" y="2" width="100" height="14" uuid="8c653c02-ccc1-5366-852a-3b8e0dcedf04"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="1090" y="2" width="60" height="14" uuid="ac597eeb-80b7-541d-b3c6-dd5e07cc3666"/>
+				<textElement verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="40" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="2" width="1150" height="14" uuid="fdd80324-3059-5bb0-8d39-47817d7f9dd7">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<textElement verticalAlignment="Middle"><font size="7" isItalic="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT} + ($V{REPORT_COUNT}.intValue() == 1 ? " row" : " rows")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="4" width="1150" height="30" uuid="0d31b9c0-cad5-5903-a055-7a71e113abc0">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() == 0]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+				<text><![CDATA[There is no data for the selected filters.]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

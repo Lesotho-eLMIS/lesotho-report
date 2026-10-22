@@ -1,0 +1,732 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Facility_System_Use" pageWidth="1700" pageHeight="595" orientation="Landscape" columnWidth="1660" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail" uuid="d7bfeb73-b35a-583a-82cb-32a38d9a214e">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
+	<property name="lesotho.report.name" value="Facility System Usage"/>
+	<property name="lesotho.report.description" value="Date each activity was last recorded in eLMIS, for every active facility (blank = not recorded in the period)"/>
+	<property name="lesotho.report.category" value="Default Category"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.1" value="title"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.2" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.3" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.4" value="summary"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.3" value="title"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xls.detect.cell.type" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.remove.empty.space.between.rows" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.remove.empty.space.between.columns" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+	<property name="net.sf.jasperreports.export.xls.one.page.per.sheet" value="false"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.2" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.3" value="title"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xlsx.detect.cell.type" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.remove.empty.space.between.rows" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.remove.empty.space.between.columns" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.white.page.background" value="false"/>
+	<property name="net.sf.jasperreports.export.xlsx.one.page.per.sheet" value="false"/>
+	<property name="net.sf.jasperreports.export.html.remove.empty.space.between.rows" value="true"/>
+	<style name="Zebra" mode="Transparent">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}.intValue() % 2 == 0]]></conditionExpression>
+			<style mode="Opaque" backcolor="#F2F4F6"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="startDate" class="java.lang.String">
+		<property name="displayName" value="Start Date"/>
+		<property name="required" value="false"/>
+		<parameterDescription><![CDATA[datepickers]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="endDate" class="java.lang.String">
+		<property name="displayName" value="End Date"/>
+		<property name="required" value="false"/>
+		<parameterDescription><![CDATA[datepickers]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="district" class="java.lang.String">
+		<property name="displayName" value="District"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/geographicZones?page=0&amp;size=1000"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="facility" class="java.lang.String">
+		<property name="displayName" value="Facility"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/facilities"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<parameterDescription><![CDATA[multipleselect]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[WITH params AS (
+    SELECT
+        CASE WHEN p.start_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN p.start_date::date END AS start_date,
+        CASE WHEN p.end_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN p.end_date::date END AS end_date,
+        NULLIF(NULLIF(NULLIF(TRIM(p.district), ''), 'undefined'), 'null') AS district,
+        CASE WHEN COALESCE(TRIM(p.facilities), '') IN ('', 'undefined', 'null') THEN NULL
+             ELSE NULLIF(ARRAY(SELECT TRIM(x) FROM unnest(string_to_array(p.facilities, '|')) AS x WHERE TRIM(x) <> ''), '{}') END AS facilities
+    FROM (SELECT $P{startDate}::text AS start_date,
+           $P{endDate}::text AS end_date,
+           $P{district}::text AS district,
+           $P{facility}::text AS facilities
+          OFFSET 0) AS p
+),
+facility_info AS (
+    -- One row per facility with its district, resolved the same way as the reports page:
+    -- the nearest zone named after one of the ten districts, else the zone at the district
+    -- level, else the facility's parent zone (or its own zone when the parent is Lesotho).
+    SELECT
+        f.id,
+        f.name,
+        f.code,
+        f.active,
+        ft.id AS type_id,
+        ft.name AS type_name,
+        fo.name AS operator_name,
+        COALESCE(
+            (SELECT z.name
+             FROM unnest(ARRAY[z1.name, z2.name, z3.name, z4.name]) WITH ORDINALITY AS z(name, ord)
+             WHERE regexp_replace(LOWER(z.name), '[^a-z]', '', 'g') IN ('berea', 'buthabuthe', 'leribe', 'mafeteng', 'maseru', 'mohaleshoek', 'mokhotlong', 'qachasneck', 'qachasnek', 'quthing', 'thabatseka')
+             ORDER BY z.ord
+             LIMIT 1),
+            CASE
+                WHEN LOWER(l1.code) = 'district' OR l1.levelnumber = 3 THEN z1.name
+                WHEN LOWER(l2.code) = 'district' OR l2.levelnumber = 3 THEN z2.name
+                WHEN LOWER(l3.code) = 'district' OR l3.levelnumber = 3 THEN z3.name
+            END,
+            CASE WHEN z2.id IS NULL OR LOWER(z2.name) = 'lesotho' THEN z1.name ELSE z2.name END
+        ) AS district,
+        ARRAY[LOWER(z1.name), LOWER(z2.name), LOWER(z3.name), LOWER(z4.name)] AS zones
+    FROM referencedata.facilities f
+    LEFT JOIN referencedata.facility_types ft ON ft.id = f.typeid
+    LEFT JOIN referencedata.facility_operators fo ON fo.id = f.operatedbyid
+    LEFT JOIN referencedata.geographic_zones z1 ON z1.id = f.geographiczoneid
+    LEFT JOIN referencedata.geographic_levels l1 ON l1.id = z1.levelid
+    LEFT JOIN referencedata.geographic_zones z2 ON z2.id = z1.parentid
+    LEFT JOIN referencedata.geographic_levels l2 ON l2.id = z2.levelid
+    LEFT JOIN referencedata.geographic_zones z3 ON z3.id = z2.parentid
+    LEFT JOIN referencedata.geographic_levels l3 ON l3.id = z3.levelid
+    LEFT JOIN referencedata.geographic_zones z4 ON z4.id = z3.parentid
+),
+selected_facilities AS (
+    -- Facilities matching the District and Facility filters
+    SELECT fi.*
+    FROM facility_info fi
+    CROSS JOIN params p
+    WHERE (p.district IS NULL
+           OR LOWER(p.district) = LOWER(fi.district)
+           OR LOWER(p.district) = ANY (fi.zones))
+      AND (p.facilities IS NULL OR fi.name = ANY (p.facilities))
+),
+products AS (
+    -- Latest version of each product (products are versioned)
+    SELECT DISTINCT ON (o.id) o.id, o.code, o.fullproductname
+    FROM referencedata.orderables o
+    ORDER BY o.id, o.versionnumber DESC
+),
+stock_activity AS (
+    -- Stock events in the period, with the reason of each line (or of each stock-count adjustment)
+    SELECT se.facilityid, se.processeddate, COALESCE(r_line.name, r_count.name) AS reason
+    FROM stockmanagement.stock_events se
+    CROSS JOIN params p
+    JOIN stockmanagement.stock_event_line_items seli ON seli.stockeventid = se.id
+    LEFT JOIN stockmanagement.stock_card_line_item_reasons r_line ON r_line.id = seli.reasonid
+    LEFT JOIN stockmanagement.physical_inventory_line_item_adjustments pili ON pili.stockeventlineitemid = seli.id
+    LEFT JOIN stockmanagement.stock_card_line_item_reasons r_count ON r_count.id = pili.reasonid
+    WHERE se.facilityid IN (SELECT id FROM selected_facilities)
+      AND (p.start_date IS NULL OR se.processeddate::date >= p.start_date)
+      AND (p.end_date IS NULL OR se.processeddate::date <= p.end_date)
+),
+stock AS (
+    SELECT
+        facilityid,
+        MAX(processeddate) FILTER (WHERE reason = 'Consumed') AS r_consumed,
+        MAX(processeddate) FILTER (WHERE reason = 'Beginning Balance Insufficiency') AS r_beginning_balance_insufficiency,
+        MAX(processeddate) FILTER (WHERE reason = 'Facility Return') AS r_facility_return,
+        MAX(processeddate) FILTER (WHERE reason = 'Stolen') AS r_stolen,
+        MAX(processeddate) FILTER (WHERE reason = 'Beginning Balance Excess') AS r_beginning_balance_excess,
+        MAX(processeddate) FILTER (WHERE reason = 'Lost') AS r_lost,
+        MAX(processeddate) FILTER (WHERE reason = 'POD Query') AS r_pod_query,
+        MAX(processeddate) FILTER (WHERE reason = 'Damage') AS r_damage,
+        MAX(processeddate) FILTER (WHERE reason = 'Expired') AS r_expired,
+        MAX(processeddate) FILTER (WHERE reason = 'Unusable') AS r_unusable,
+        MAX(processeddate) FILTER (WHERE reason = 'Degraded') AS r_degraded,
+        MAX(processeddate) FILTER (WHERE reason = 'Unpack Kit') AS r_unpack_kit,
+        MAX(processeddate) FILTER (WHERE reason = 'Transfer In') AS r_transfer_in,
+        MAX(processeddate) FILTER (WHERE reason = 'Unpacked From Kit') AS r_unpacked_from_kit,
+        MAX(processeddate) FILTER (WHERE reason = 'Transfer Out') AS r_transfer_out,
+        MAX(processeddate) FILTER (WHERE reason = 'Cold Chain Failure') AS r_cold_chain_failure,
+        MAX(processeddate) FILTER (WHERE reason = 'Passed Open-vial Time Limit') AS r_passed_open_vial_time_limit,
+        MAX(processeddate) FILTER (WHERE reason = 'Recalled') AS r_recalled,
+        MAX(processeddate) FILTER (WHERE reason = 'Over Supply') AS r_over_supply,
+        MAX(processeddate) FILTER (WHERE reason = 'Receipts') AS r_receipts,
+        MAX(processeddate) FILTER (WHERE reason = 'Expiry') AS r_expiry,
+        MAX(processeddate) FILTER (WHERE reason = 'Damaged') AS r_damaged,
+        MAX(processeddate) FILTER (WHERE reason = 'Internal Transfer Out') AS r_internal_transfer_out,
+        MAX(processeddate) FILTER (WHERE reason = 'Internal Transfer In') AS r_internal_transfer_in,
+        MAX(processeddate) AS last_stock_event
+    FROM stock_activity
+    GROUP BY facilityid
+),
+requisitions AS (
+    SELECT r.facilityid, MAX(sc.createddate)::timestamp AS last_requisition
+    FROM requisition.requisitions r
+    JOIN requisition.status_changes sc ON sc.requisitionid = r.id
+    CROSS JOIN params p
+    WHERE sc.status IN ('INITIATED', 'SUBMITTED', 'AUTHORIZED')
+      AND r.facilityid IN (SELECT id FROM selected_facilities)
+      AND (p.start_date IS NULL OR sc.createddate::date >= p.start_date)
+      AND (p.end_date IS NULL OR sc.createddate::date <= p.end_date)
+    GROUP BY r.facilityid
+),
+fulfillment AS (
+    SELECT o.facilityid, GREATEST(MAX(o.createddate), MAX(sh.shippeddate))::timestamp AS last_fulfillment
+    FROM fulfillment.orders o
+    LEFT JOIN fulfillment.shipments sh ON sh.orderid = o.id
+    CROSS JOIN params p
+    WHERE o.facilityid IN (SELECT id FROM selected_facilities)
+      AND (p.start_date IS NULL OR o.createddate::date >= p.start_date)
+      AND (p.end_date IS NULL OR o.createddate::date <= p.end_date)
+    GROUP BY o.facilityid
+)
+SELECT
+    sf.district,
+    sf.name AS facility,
+    sf.type_name AS facility_type,
+    st.r_consumed,
+    st.r_beginning_balance_insufficiency,
+    st.r_facility_return,
+    st.r_stolen,
+    st.r_beginning_balance_excess,
+    st.r_lost,
+    st.r_pod_query,
+    st.r_damage,
+    st.r_expired,
+    st.r_unusable,
+    st.r_degraded,
+    st.r_unpack_kit,
+    st.r_transfer_in,
+    st.r_unpacked_from_kit,
+    st.r_transfer_out,
+    st.r_cold_chain_failure,
+    st.r_passed_open_vial_time_limit,
+    st.r_recalled,
+    st.r_over_supply,
+    st.r_receipts,
+    st.r_expiry,
+    st.r_damaged,
+    st.r_internal_transfer_out,
+    st.r_internal_transfer_in,
+    rq.last_requisition,
+    fu.last_fulfillment,
+    GREATEST(st.last_stock_event, rq.last_requisition, fu.last_fulfillment) AS last_activity
+FROM selected_facilities sf
+LEFT JOIN stock st ON st.facilityid = sf.id
+LEFT JOIN requisitions rq ON rq.facilityid = sf.id
+LEFT JOIN fulfillment fu ON fu.facilityid = sf.id
+WHERE sf.active = true
+ORDER BY sf.district, sf.name]]>
+	</queryString>
+	<field name="district" class="java.lang.String"/>
+	<field name="facility" class="java.lang.String"/>
+	<field name="facility_type" class="java.lang.String"/>
+	<field name="r_consumed" class="java.sql.Timestamp"/>
+	<field name="r_beginning_balance_insufficiency" class="java.sql.Timestamp"/>
+	<field name="r_facility_return" class="java.sql.Timestamp"/>
+	<field name="r_stolen" class="java.sql.Timestamp"/>
+	<field name="r_beginning_balance_excess" class="java.sql.Timestamp"/>
+	<field name="r_lost" class="java.sql.Timestamp"/>
+	<field name="r_pod_query" class="java.sql.Timestamp"/>
+	<field name="r_damage" class="java.sql.Timestamp"/>
+	<field name="r_expired" class="java.sql.Timestamp"/>
+	<field name="r_unusable" class="java.sql.Timestamp"/>
+	<field name="r_degraded" class="java.sql.Timestamp"/>
+	<field name="r_unpack_kit" class="java.sql.Timestamp"/>
+	<field name="r_transfer_in" class="java.sql.Timestamp"/>
+	<field name="r_unpacked_from_kit" class="java.sql.Timestamp"/>
+	<field name="r_transfer_out" class="java.sql.Timestamp"/>
+	<field name="r_cold_chain_failure" class="java.sql.Timestamp"/>
+	<field name="r_passed_open_vial_time_limit" class="java.sql.Timestamp"/>
+	<field name="r_recalled" class="java.sql.Timestamp"/>
+	<field name="r_over_supply" class="java.sql.Timestamp"/>
+	<field name="r_receipts" class="java.sql.Timestamp"/>
+	<field name="r_expiry" class="java.sql.Timestamp"/>
+	<field name="r_damaged" class="java.sql.Timestamp"/>
+	<field name="r_internal_transfer_out" class="java.sql.Timestamp"/>
+	<field name="r_internal_transfer_in" class="java.sql.Timestamp"/>
+	<field name="last_requisition" class="java.sql.Timestamp"/>
+	<field name="last_fulfillment" class="java.sql.Timestamp"/>
+	<field name="last_activity" class="java.sql.Timestamp"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="84" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="2" width="1660" height="22" forecolor="#1F2A36" uuid="5080b25c-b16c-5718-a43d-c95f00ea3d80"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="14" isBold="true"/></textElement>
+				<text><![CDATA[Facility System Use]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="24" width="1660" height="13" forecolor="#5B6670" uuid="4078147a-cc07-5d69-b579-b7ff03d5571f"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<text><![CDATA[Date each activity was last recorded in eLMIS, for every active facility (blank = not recorded in the period)]]></text>
+			</staticText>
+			<frame>
+				<reportElement mode="Opaque" x="0" y="44" width="1660" height="34" backcolor="#F4F6F8" uuid="1d31cdfa-31b5-53e6-bfcc-10d40bf13b05"/>
+				<box topPadding="3" leftPadding="6" bottomPadding="3" rightPadding="6"><pen lineWidth="0.5" lineColor="#CFD5DB"/></box>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="34" height="13" forecolor="#4A5560" uuid="2c8a698f-f6c1-5aa4-b774-191a86b81d29"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Period:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="34" y="0" width="507" height="13" forecolor="#1F2A36" uuid="e8efae95-e9bf-5b20-ae6e-1a58095b6498"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[(($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) == null && ($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) == null) ? "All dates" : (($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) == null ? "Up to " + ($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) : (($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) == null ? "From " + ($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) : ($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) + " to " + ($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null)))]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="549" y="0" width="42" height="13" forecolor="#4A5560" uuid="26157ad8-1936-53c7-8c39-f2495a0be52a"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[District:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="591" y="0" width="499" height="13" forecolor="#1F2A36" uuid="647edcda-0e5a-53e4-b6a5-d19b25aed58a"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[($P{district} == null || $P{district}.trim().isEmpty() || $P{district}.equals("undefined") || $P{district}.equals("null")) ? "All districts" : $P{district}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="1098" y="0" width="42" height="13" forecolor="#4A5560" uuid="5cd2f2c4-3f60-53a1-ae9a-b62ca23555f8"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Facility:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="1140" y="0" width="499" height="13" forecolor="#1F2A36" uuid="549da468-2576-5463-9a70-92b750108cc4"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[($P{facility} == null || $P{facility}.trim().isEmpty() || $P{facility}.equals("undefined") || $P{facility}.equals("null")) ? "All facilities" : ($P{facility}.split("\\|").length <= 4 ? $P{facility}.replace("|", ", ") : String.join(", ", java.util.Arrays.copyOfRange($P{facility}.split("\\|"), 0, 4)) + " and " + ($P{facility}.split("\\|").length - 4) + " more")]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="14" width="46" height="13" forecolor="#4A5560" uuid="662a5ee1-4bd5-5f26-bb2c-d4b0ac36cc05"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Generated:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="46" y="14" width="495" height="13" forecolor="#1F2A36" uuid="ed61354c-11f0-593f-a160-5a44656e96f5"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("dd MMM yyyy HH:mm").format(new java.util.Date())]]></textFieldExpression>
+				</textField>
+			</frame>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="60" height="30" backcolor="#DDE3E9" uuid="a18c5c8f-4200-5776-88dc-f75b4401ab7e"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[District]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="60" y="0" width="127" height="30" backcolor="#DDE3E9" uuid="f0862aec-0c4a-51cf-b291-88a2eefda37f"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Facility]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="187" y="0" width="55" height="30" backcolor="#DDE3E9" uuid="b55af962-8f66-5f40-9376-24507471af34"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Facility Type]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="242" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="de67111a-336b-5157-904c-a8ca7a587530"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Consumed]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="294" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="0b68682f-4578-54fc-92fe-3886c963fee2"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Beg. Bal. Insufficiency]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="346" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="5f3da7b2-e83a-5262-80e6-e772c12e1e7c"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Facility Return]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="398" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="b9d7cee4-16bf-5da8-8580-1c4225a84dd8"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Stolen]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="450" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="d17a38ad-976b-560f-a23e-d99f984a26f6"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Beg. Bal. Excess]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="502" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="f8380169-151b-5ded-9975-91208a965099"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Lost]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="554" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="cdbad47d-b138-5122-a196-4e9ae2623125"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[POD Query]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="606" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="223ded3d-16c7-5792-a041-f991a406c9f9"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Damage]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="658" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="ab6ff175-8cfa-5218-8279-e7cf2d1c50ec"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Expired]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="710" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="0a4ee435-0bbb-587f-a4fd-1d4f3ebc185d"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Unusable]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="762" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="41ba6524-2ebe-5baa-9585-a2f73831cc4c"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Degraded]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="814" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="b85a4f09-600d-5195-a170-bb72030787f5"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Unpack Kit]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="866" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="3801c883-a2cb-57e6-9c5d-a521186176f3"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Transfer In]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="918" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="46e6ac83-aa83-5098-8dc1-335a7b04a773"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Unpacked From Kit]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="970" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="b2e9aa1a-78cd-5e61-bf16-3750b0373567"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Transfer Out]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1022" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="5d4b4e0c-e60e-5082-8d48-8bb90cdf58eb"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Cold Chain Failure]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1074" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="ec3d51bf-2dd4-54a0-8694-49b47961b1c6"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Passed Open-vial Limit]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1126" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="16a9a7af-16f0-5a66-a105-970f82bc7f22"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Recalled]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1178" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="f91590bf-703c-5546-925c-472138770cd1"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Over Supply]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1230" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="200fe957-e7a1-546e-9bf1-1a5ef18fd8ee"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Receipts]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1282" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="0a9b1b20-8f3d-5818-8d93-76512c7a3981"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Expiry]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1334" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="b3ab3355-562b-5cbb-8b14-201025420691"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Damaged]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1386" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="071be3be-45ba-5a65-ae4d-0f40e12252f0"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Int. Transfer Out]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1438" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="1cfe9ca3-6e3d-59af-95d7-4f11390e12e8"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Int. Transfer In]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1490" y="0" width="55" height="30" backcolor="#DDE3E9" uuid="94e253d0-3b9f-582e-a9c3-f9628b349f32"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Requisitions]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1545" y="0" width="55" height="30" backcolor="#DDE3E9" uuid="6bfbfc3a-2632-55ea-a35d-9d49b8d8cc9d"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Fulfillment]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1600" y="0" width="60" height="30" backcolor="#DDE3E9" uuid="4dfa058b-cefc-55eb-a63a-6ac5d8045aef"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Last Activity]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="0" y="0" width="60" height="16" uuid="49442daf-e8b6-5e3a-a863-eea8a488f9d2"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{district}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="60" y="0" width="127" height="16" uuid="5bca0b79-9269-508a-bfc7-d2d44ca0b65f"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Left" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{facility}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="187" y="0" width="55" height="16" uuid="e9a83db7-e0f0-5bb7-be1c-438b6462e078"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{facility_type}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="242" y="0" width="52" height="16" uuid="2c99392e-de7c-52bd-b8b8-1ffbab5d751a"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_consumed}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="294" y="0" width="52" height="16" uuid="6e2c9ad3-1f01-58fb-8053-94d1a6e48c1d"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_beginning_balance_insufficiency}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="346" y="0" width="52" height="16" uuid="f523e202-c7c7-5d08-a7af-e3d2a646df78"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_facility_return}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="398" y="0" width="52" height="16" uuid="77483f3a-69b1-5552-9a92-25c27054bd4c"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_stolen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="450" y="0" width="52" height="16" uuid="7e0ce0a8-cbe9-53d7-a26f-2cc39bc81f3b"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_beginning_balance_excess}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="502" y="0" width="52" height="16" uuid="2d37bd09-e530-5d2e-8838-97dca0f17a89"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_lost}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="554" y="0" width="52" height="16" uuid="2f56a876-675e-5b63-b8f0-54aa74f2d0b1"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_pod_query}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="606" y="0" width="52" height="16" uuid="ebb12b82-7c1d-5703-b7a6-8092bcbf86c1"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_damage}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="658" y="0" width="52" height="16" uuid="54b3ea5e-9d5f-5829-a88b-3ecb174dd8cb"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_expired}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="710" y="0" width="52" height="16" uuid="796fc7d4-e503-528b-8cde-d7e10e74d9be"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_unusable}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="762" y="0" width="52" height="16" uuid="f0f165ab-4c66-5061-90e3-288dcf9250ad"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_degraded}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="814" y="0" width="52" height="16" uuid="16a8bccd-4f5b-5de5-b4ee-02e343a93f61"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_unpack_kit}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="866" y="0" width="52" height="16" uuid="2ef0c90e-6777-5fe4-8794-b04dade15120"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_transfer_in}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="918" y="0" width="52" height="16" uuid="2c9fb8dc-f500-523d-861e-82c212a4cf71"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_unpacked_from_kit}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="970" y="0" width="52" height="16" uuid="f69b096a-a78c-5f0f-b492-bd8a23f1276f"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_transfer_out}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1022" y="0" width="52" height="16" uuid="c9c9573e-98d7-5d55-bb84-330196b7a947"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_cold_chain_failure}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1074" y="0" width="52" height="16" uuid="2766ada8-e1a5-52f5-80c5-35a5ea6cb22b"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_passed_open_vial_time_limit}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1126" y="0" width="52" height="16" uuid="27ce0765-33d7-5699-aa4b-060bdb0f837d"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_recalled}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1178" y="0" width="52" height="16" uuid="4c6232f5-02b8-5ce3-b674-1fed233d41ea"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_over_supply}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1230" y="0" width="52" height="16" uuid="d1b45d02-3acc-505f-880c-c5790e8baeff"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_receipts}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1282" y="0" width="52" height="16" uuid="a0b6ec57-5628-54cd-880b-8b13598facad"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_expiry}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1334" y="0" width="52" height="16" uuid="cc4ddcc2-52a5-5e44-a20d-4e848d704137"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_damaged}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1386" y="0" width="52" height="16" uuid="8c64eca2-ce51-54d1-93b8-1d3bcbc984ad"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_internal_transfer_out}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1438" y="0" width="52" height="16" uuid="47b0f13d-e7a9-51eb-88ab-88c535ba7daa"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{r_internal_transfer_in}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1490" y="0" width="55" height="16" uuid="885f3a78-3412-5429-b24e-d73608f18076"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{last_requisition}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1545" y="0" width="55" height="16" uuid="2645b45b-6eb2-5e97-b21a-150308df7c55"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{last_fulfillment}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd/MM/yy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1600" y="0" width="60" height="16" uuid="240c588c-6928-5e25-903f-a662bf671d27"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{last_activity}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="18" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="2" width="1500" height="14" forecolor="#444444" uuid="2788a2d6-5d45-52e7-ac1e-dc151637456c"/>
+				<textElement verticalAlignment="Middle"><font size="7"/></textElement>
+				<text><![CDATA[Lesotho eLMIS - Facility System Use]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="1500" y="2" width="100" height="14" uuid="b6a6c85b-2334-5dcb-95f0-fb228d05268b"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="1600" y="2" width="60" height="14" uuid="1566fb35-30aa-56a9-9094-94f2e1c1948d"/>
+				<textElement verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="40" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="2" width="1660" height="14" uuid="cd5fbd3d-4068-5e3d-8e7a-ab994b6aaa46">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<textElement verticalAlignment="Middle"><font size="7" isItalic="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT} + ($V{REPORT_COUNT}.intValue() == 1 ? " row" : " rows")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="4" width="1660" height="30" uuid="599e1032-aba6-502b-911b-ea490b71bf8e">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() == 0]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+				<text><![CDATA[There is no data for the selected filters.]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>
