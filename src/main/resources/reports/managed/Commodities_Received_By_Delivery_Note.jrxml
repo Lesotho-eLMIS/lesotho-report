@@ -1,0 +1,629 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Commodities_Received_By_Delivery_Note" pageWidth="1190" pageHeight="842" orientation="Landscape" columnWidth="1150" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail" uuid="b91bfb3f-bbe4-5526-b100-c0356747d50c">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="elmis"/>
+	<property name="lesotho.report.name" value="Commodities Received by Delivery Note"/>
+	<property name="lesotho.report.description" value="Every product line received against a delivery note, with quantities, batches and value"/>
+	<property name="lesotho.report.category" value="Default Category"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.1" value="title"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.2" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.3" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.band.4" value="summary"/>
+	<property name="net.sf.jasperreports.export.csv.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.3" value="title"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xls.detect.cell.type" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.remove.empty.space.between.rows" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.remove.empty.space.between.columns" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+	<property name="net.sf.jasperreports.export.xls.one.page.per.sheet" value="false"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.2" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.band.3" value="title"/>
+	<property name="net.sf.jasperreports.export.xlsx.exclude.origin.keep.first.band.1" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xlsx.detect.cell.type" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.remove.empty.space.between.rows" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.remove.empty.space.between.columns" value="true"/>
+	<property name="net.sf.jasperreports.export.xlsx.white.page.background" value="false"/>
+	<property name="net.sf.jasperreports.export.xlsx.one.page.per.sheet" value="false"/>
+	<property name="net.sf.jasperreports.export.html.remove.empty.space.between.rows" value="true"/>
+	<style name="Zebra" mode="Transparent">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}.intValue() % 2 == 0]]></conditionExpression>
+			<style mode="Opaque" backcolor="#F2F4F6"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="startDate" class="java.lang.String">
+		<property name="displayName" value="Start Date"/>
+		<property name="required" value="false"/>
+		<parameterDescription><![CDATA[datepickers]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="endDate" class="java.lang.String">
+		<property name="displayName" value="End Date"/>
+		<property name="required" value="false"/>
+		<parameterDescription><![CDATA[datepickers]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="district" class="java.lang.String">
+		<property name="displayName" value="District"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/geographicZones?page=0&amp;size=1000"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="facility" class="java.lang.String">
+		<property name="displayName" value="Facility"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/facilities"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<parameterDescription><![CDATA[multipleselect]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="program" class="java.lang.String">
+		<property name="displayName" value="Program"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/programs"/>
+		<property name="selectProperty" value="name"/>
+		<property name="displayProperty" value="name"/>
+		<parameterDescription><![CDATA[multipleselect]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="product" class="java.lang.String">
+		<property name="displayName" value="Product"/>
+		<property name="required" value="false"/>
+		<property name="selectExpression" value="/api/orderables?page=0&amp;size=5000"/>
+		<property name="selectProperty" value="fullProductName"/>
+		<property name="displayProperty" value="fullProductName"/>
+		<parameterDescription><![CDATA[multipleselect]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="referenceNumber" class="java.lang.String">
+		<property name="displayName" value="Delivery Note / Reference Number"/>
+		<property name="required" value="false"/>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[WITH params AS (
+    SELECT
+        CASE WHEN p.start_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN p.start_date::date END AS start_date,
+        CASE WHEN p.end_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN p.end_date::date END AS end_date,
+        NULLIF(NULLIF(NULLIF(TRIM(p.district), ''), 'undefined'), 'null') AS district,
+        CASE WHEN COALESCE(TRIM(p.facilities), '') IN ('', 'undefined', 'null') THEN NULL
+             ELSE NULLIF(ARRAY(SELECT TRIM(x) FROM unnest(string_to_array(p.facilities, '|')) AS x WHERE TRIM(x) <> ''), '{}') END AS facilities,
+        CASE WHEN COALESCE(TRIM(p.programs), '') IN ('', 'undefined', 'null') THEN NULL
+             ELSE NULLIF(ARRAY(SELECT TRIM(x) FROM unnest(string_to_array(p.programs, '|')) AS x WHERE TRIM(x) <> ''), '{}') END AS programs,
+        CASE WHEN COALESCE(TRIM(p.products), '') IN ('', 'undefined', 'null') THEN NULL
+             ELSE NULLIF(ARRAY(SELECT TRIM(x) FROM unnest(string_to_array(p.products, '|')) AS x WHERE TRIM(x) <> ''), '{}') END AS products,
+        NULLIF(NULLIF(NULLIF(TRIM(p.reference), ''), 'undefined'), 'null') AS reference
+    FROM (SELECT $P{startDate}::text AS start_date,
+           $P{endDate}::text AS end_date,
+           $P{district}::text AS district,
+           $P{facility}::text AS facilities,
+           $P{program}::text AS programs,
+           $P{product}::text AS products,
+           $P{referenceNumber}::text AS reference
+          OFFSET 0) AS p
+),
+facility_info AS (
+    -- One row per facility with its district, resolved the same way as the reports page:
+    -- the nearest zone named after one of the ten districts, else the zone at the district
+    -- level, else the facility's parent zone (or its own zone when the parent is Lesotho).
+    SELECT
+        f.id,
+        f.name,
+        f.code,
+        f.active,
+        ft.id AS type_id,
+        ft.name AS type_name,
+        fo.name AS operator_name,
+        COALESCE(
+            (SELECT z.name
+             FROM unnest(ARRAY[z1.name, z2.name, z3.name, z4.name]) WITH ORDINALITY AS z(name, ord)
+             WHERE regexp_replace(LOWER(z.name), '[^a-z]', '', 'g') IN ('berea', 'buthabuthe', 'leribe', 'mafeteng', 'maseru', 'mohaleshoek', 'mokhotlong', 'qachasneck', 'qachasnek', 'quthing', 'thabatseka')
+             ORDER BY z.ord
+             LIMIT 1),
+            CASE
+                WHEN LOWER(l1.code) = 'district' OR l1.levelnumber = 3 THEN z1.name
+                WHEN LOWER(l2.code) = 'district' OR l2.levelnumber = 3 THEN z2.name
+                WHEN LOWER(l3.code) = 'district' OR l3.levelnumber = 3 THEN z3.name
+            END,
+            CASE WHEN z2.id IS NULL OR LOWER(z2.name) = 'lesotho' THEN z1.name ELSE z2.name END
+        ) AS district,
+        ARRAY[LOWER(z1.name), LOWER(z2.name), LOWER(z3.name), LOWER(z4.name)] AS zones
+    FROM referencedata.facilities f
+    LEFT JOIN referencedata.facility_types ft ON ft.id = f.typeid
+    LEFT JOIN referencedata.facility_operators fo ON fo.id = f.operatedbyid
+    LEFT JOIN referencedata.geographic_zones z1 ON z1.id = f.geographiczoneid
+    LEFT JOIN referencedata.geographic_levels l1 ON l1.id = z1.levelid
+    LEFT JOIN referencedata.geographic_zones z2 ON z2.id = z1.parentid
+    LEFT JOIN referencedata.geographic_levels l2 ON l2.id = z2.levelid
+    LEFT JOIN referencedata.geographic_zones z3 ON z3.id = z2.parentid
+    LEFT JOIN referencedata.geographic_levels l3 ON l3.id = z3.levelid
+    LEFT JOIN referencedata.geographic_zones z4 ON z4.id = z3.parentid
+),
+selected_facilities AS (
+    -- Facilities matching the District and Facility filters
+    SELECT fi.*
+    FROM facility_info fi
+    CROSS JOIN params p
+    WHERE (p.district IS NULL
+           OR LOWER(p.district) = LOWER(fi.district)
+           OR LOWER(p.district) = ANY (fi.zones))
+      AND (p.facilities IS NULL OR fi.name = ANY (p.facilities))
+),
+products AS (
+    -- Latest version of each product (products are versioned)
+    SELECT DISTINCT ON (o.id) o.id, o.code, o.fullproductname
+    FROM referencedata.orderables o
+    ORDER BY o.id, o.versionnumber DESC
+)
+SELECT
+    sel.referencenumber AS delivery_note,
+    sel.occurreddate AS date_received,
+    sf.district,
+    sf.name AS receiving_facility,
+    COALESCE(src.name, NULLIF(TRIM(sel.sourcefreetext), '')) AS supplier,
+    prog.name AS program,
+    pr.code AS product_code,
+    pr.fullproductname AS product,
+    lot.lotcode AS batch_number,
+    lot.expirationdate AS expiry_date,
+    sel.quantityondeliverynote AS qty_on_delivery_note,
+    sel.quantity AS qty_received,
+    sel.quantityrejected AS qty_rejected,
+    sel.cartonnumber AS carton_number,
+    sel.invoicenumber AS invoice_number,
+    sel.unitprice AS unit_price,
+    sel.quantity * sel.unitprice AS line_value
+FROM stockmanagement.stock_event_line_items sel
+JOIN stockmanagement.stock_events se ON se.id = sel.stockeventid
+JOIN selected_facilities sf ON sf.id = se.facilityid
+CROSS JOIN params p
+LEFT JOIN referencedata.programs prog ON prog.id = se.programid
+LEFT JOIN products pr ON pr.id = sel.orderableid
+LEFT JOIN referencedata.lots lot ON lot.id = sel.lotid
+LEFT JOIN stockmanagement.nodes n ON n.id = sel.sourceid
+LEFT JOIN referencedata.facilities src ON src.id = n.referenceid
+WHERE NULLIF(TRIM(sel.referencenumber), '') IS NOT NULL
+  AND (p.start_date IS NULL OR sel.occurreddate >= p.start_date)
+  AND (p.end_date IS NULL OR sel.occurreddate <= p.end_date)
+  AND (p.programs IS NULL OR prog.name = ANY (p.programs))
+  AND (p.products IS NULL OR pr.fullproductname = ANY (p.products))
+  AND (p.reference IS NULL OR sel.referencenumber ILIKE '%' || p.reference || '%')
+ORDER BY sel.occurreddate, sel.referencenumber, sf.name, pr.fullproductname, lot.lotcode]]>
+	</queryString>
+	<field name="delivery_note" class="java.lang.String"/>
+	<field name="date_received" class="java.sql.Date"/>
+	<field name="district" class="java.lang.String"/>
+	<field name="receiving_facility" class="java.lang.String"/>
+	<field name="supplier" class="java.lang.String"/>
+	<field name="program" class="java.lang.String"/>
+	<field name="product_code" class="java.lang.String"/>
+	<field name="product" class="java.lang.String"/>
+	<field name="batch_number" class="java.lang.String"/>
+	<field name="expiry_date" class="java.sql.Date"/>
+	<field name="qty_on_delivery_note" class="java.lang.Integer"/>
+	<field name="qty_received" class="java.lang.Integer"/>
+	<field name="qty_rejected" class="java.lang.Integer"/>
+	<field name="carton_number" class="java.lang.String"/>
+	<field name="invoice_number" class="java.lang.String"/>
+	<field name="unit_price" class="java.lang.Double"/>
+	<field name="line_value" class="java.lang.Double"/>
+	<variable name="SUM_qty_on_delivery_note" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{qty_on_delivery_note}]]></variableExpression>
+	</variable>
+	<variable name="SUM_qty_received" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{qty_received}]]></variableExpression>
+	</variable>
+	<variable name="SUM_qty_rejected" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{qty_rejected}]]></variableExpression>
+	</variable>
+	<variable name="SUM_line_value" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{line_value}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="98" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="2" width="1150" height="22" forecolor="#1F2A36" uuid="3a2860cf-a929-5248-8456-b6a3f21105bf"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="14" isBold="true"/></textElement>
+				<text><![CDATA[Commodities Received by Delivery Note]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="24" width="1150" height="13" forecolor="#5B6670" uuid="8fa5df97-7ada-57cc-8a24-daa519d253fd"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<text><![CDATA[Every product line received against a delivery note, with quantities, batches and value]]></text>
+			</staticText>
+			<frame>
+				<reportElement mode="Opaque" x="0" y="44" width="1150" height="48" backcolor="#F4F6F8" uuid="be231e3d-f2b6-5017-9d82-bde67e9822a3"/>
+				<box topPadding="3" leftPadding="6" bottomPadding="3" rightPadding="6"><pen lineWidth="0.5" lineColor="#CFD5DB"/></box>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="34" height="13" forecolor="#4A5560" uuid="d735d737-d3f7-5412-8488-881b8b9d6211"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Period:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="34" y="0" width="337" height="13" forecolor="#1F2A36" uuid="e6ced37a-704f-555e-b2b7-8144d7955145"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[(($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) == null && ($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) == null) ? "All dates" : (($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) == null ? "Up to " + ($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) : (($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null) == null ? "From " + ($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) : ($P{startDate} != null && $P{startDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{startDate})) : null) + " to " + ($P{endDate} != null && $P{endDate}.matches("\\d{4}-\\d{2}-\\d{2}") ? new java.text.SimpleDateFormat("dd MMM yyyy").format(java.sql.Date.valueOf($P{endDate})) : null)))]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="379" y="0" width="42" height="13" forecolor="#4A5560" uuid="21bd996b-878f-5862-b4bf-d60ada6a4bce"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[District:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="421" y="0" width="329" height="13" forecolor="#1F2A36" uuid="f7f1ff9c-3622-50c5-95a0-bd440bbad21d"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[($P{district} == null || $P{district}.trim().isEmpty() || $P{district}.equals("undefined") || $P{district}.equals("null")) ? "All districts" : $P{district}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="758" y="0" width="42" height="13" forecolor="#4A5560" uuid="ba1ff653-df1b-5bf1-b8a3-bba75db89f0c"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Facility:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="800" y="0" width="329" height="13" forecolor="#1F2A36" uuid="13438953-c5c1-53aa-afd6-42ac12bdd5e1"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[($P{facility} == null || $P{facility}.trim().isEmpty() || $P{facility}.equals("undefined") || $P{facility}.equals("null")) ? "All facilities" : ($P{facility}.split("\\|").length <= 4 ? $P{facility}.replace("|", ", ") : String.join(", ", java.util.Arrays.copyOfRange($P{facility}.split("\\|"), 0, 4)) + " and " + ($P{facility}.split("\\|").length - 4) + " more")]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="14" width="38" height="13" forecolor="#4A5560" uuid="a8978e2c-caa2-5274-acae-25e9070548cc"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Program:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="38" y="14" width="333" height="13" forecolor="#1F2A36" uuid="8950b125-46f8-5946-a7ac-6df7cf8e8a68"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[($P{program} == null || $P{program}.trim().isEmpty() || $P{program}.equals("undefined") || $P{program}.equals("null")) ? "All programs" : ($P{program}.split("\\|").length <= 4 ? $P{program}.replace("|", ", ") : String.join(", ", java.util.Arrays.copyOfRange($P{program}.split("\\|"), 0, 4)) + " and " + ($P{program}.split("\\|").length - 4) + " more")]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="379" y="14" width="38" height="13" forecolor="#4A5560" uuid="ea0992b7-fe89-5d56-9887-b260cc1ad524"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Product:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="417" y="14" width="333" height="13" forecolor="#1F2A36" uuid="2acf3384-fc85-5198-b7e6-c975a8eacdcd"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[($P{product} == null || $P{product}.trim().isEmpty() || $P{product}.equals("undefined") || $P{product}.equals("null")) ? "All products" : ($P{product}.split("\\|").length <= 4 ? $P{product}.replace("|", ", ") : String.join(", ", java.util.Arrays.copyOfRange($P{product}.split("\\|"), 0, 4)) + " and " + ($P{product}.split("\\|").length - 4) + " more")]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="758" y="14" width="62" height="13" forecolor="#4A5560" uuid="5eeddf65-5fb6-552a-90c4-f7aea38ee2b7"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Delivery Note:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="820" y="14" width="309" height="13" forecolor="#1F2A36" uuid="e41e8713-f4e4-5422-9a1e-68710cf4d932"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[($P{referenceNumber} == null || $P{referenceNumber}.trim().isEmpty() || $P{referenceNumber}.equals("undefined") || $P{referenceNumber}.equals("null")) ? "Any" : $P{referenceNumber}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="28" width="46" height="13" forecolor="#4A5560" uuid="dd528da5-0c34-5d5f-95e4-d5869c3304b8"/>
+					<textElement verticalAlignment="Top"><font size="7" isBold="true"/></textElement>
+					<text><![CDATA[Generated:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="46" y="28" width="325" height="13" forecolor="#1F2A36" uuid="8fd86de9-1ccd-5dfc-8c01-1fae88796de7"/>
+					<textElement verticalAlignment="Top"><font size="7"/></textElement>
+					<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("dd MMM yyyy HH:mm").format(new java.util.Date())]]></textFieldExpression>
+				</textField>
+			</frame>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="75" height="30" backcolor="#DDE3E9" uuid="e97909cb-109d-5234-98ca-4813163688ff"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Delivery Note No.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="75" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="8141b6cb-38b6-5339-9cf8-e1eb9824bfa1"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Date Received]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="127" y="0" width="50" height="30" backcolor="#DDE3E9" uuid="2a2b49b7-5f9e-53e8-8790-75d4798c6482"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[District]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="177" y="0" width="110" height="30" backcolor="#DDE3E9" uuid="4050b1ab-a818-5957-93fe-f8211f78f01f"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Receiving Facility]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="287" y="0" width="95" height="30" backcolor="#DDE3E9" uuid="6218f96a-4e98-5fd1-bd54-794c0fee9448"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Supplier]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="382" y="0" width="65" height="30" backcolor="#DDE3E9" uuid="f96bcc91-a9bb-53e7-bb6b-2d85e31314d4"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Program]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="447" y="0" width="79" height="30" backcolor="#DDE3E9" uuid="f2d6adde-7ca2-5dde-ae67-88ab6b7dd1ed"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Code]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="526" y="0" width="160" height="30" backcolor="#DDE3E9" uuid="10e5ce97-2807-5ca5-83c1-eb89ef66462d"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Product]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="686" y="0" width="55" height="30" backcolor="#DDE3E9" uuid="ad4dec68-be91-5518-8bb3-5ce18d2fe147"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Batch]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="741" y="0" width="55" height="30" backcolor="#DDE3E9" uuid="ea03c850-25de-5748-9f59-14118098e115"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Expiry]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="796" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="b2ff4abc-4ac4-54d6-92d5-c078294df141"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Qty on Delivery Note]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="848" y="0" width="52" height="30" backcolor="#DDE3E9" uuid="f2cc89b9-7cb2-59ff-a6a2-056c04627556"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Qty Received]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="900" y="0" width="42" height="30" backcolor="#DDE3E9" uuid="2f1087ed-f61a-5ed6-983d-974705c5693a"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Qty Rejected]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="942" y="0" width="45" height="30" backcolor="#DDE3E9" uuid="3ee1db5b-9d16-53e3-bfe0-a7dc5bbf6a00"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Carton No.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="987" y="0" width="58" height="30" backcolor="#DDE3E9" uuid="cc133f12-f71a-53ec-be6e-a09dd205cb09"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Invoice No.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1045" y="0" width="45" height="30" backcolor="#DDE3E9" uuid="2769bfcc-9336-560a-8911-2b4dc061e958"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Unit Price]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1090" y="0" width="60" height="30" backcolor="#DDE3E9" uuid="49d2efad-4bf5-5d48-b8f0-c9f8cd832472"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Value]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="0" y="0" width="75" height="16" uuid="f8193d56-f63f-585f-912b-d8a5d0acb68e"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{delivery_note}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd MMM yyyy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="75" y="0" width="52" height="16" uuid="1001603a-5a65-5608-b4ca-e5dc85ff59f9"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{date_received}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="127" y="0" width="50" height="16" uuid="7db04941-6cfa-5a2f-a12b-fa663c656b21"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{district}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="177" y="0" width="110" height="16" uuid="9d3fff62-cf50-5d3c-8f4a-96f18ace9432"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Left" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{receiving_facility}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="287" y="0" width="95" height="16" uuid="d5ac1243-cc4a-58f9-b4e6-3bdda0ec6de4"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Left" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{supplier}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="382" y="0" width="65" height="16" uuid="3f4bd6f9-12c5-5800-8f1f-155a5257936e"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{program}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="447" y="0" width="79" height="16" uuid="70a18b4f-838e-579d-83d0-c5066d643308"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{product_code}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="526" y="0" width="160" height="16" uuid="e16849b1-d503-5e41-a3d4-c8cb82cbb5b3"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Left" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{product}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="686" y="0" width="55" height="16" uuid="6de2c028-a490-5b98-ab0e-7a65603f49af"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{batch_number}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="dd MMM yyyy">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="741" y="0" width="55" height="16" uuid="0b64a1a5-b47e-55f5-9978-29838ca8096e"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{expiry_date}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="796" y="0" width="52" height="16" uuid="0d3f77fd-21a3-5572-b000-a107574655d8"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{qty_on_delivery_note}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="848" y="0" width="52" height="16" uuid="17180500-8712-5cc7-9e17-61f54455b990"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{qty_received}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="900" y="0" width="42" height="16" uuid="ccde3fcd-dcf3-53bc-9481-e07375857eef"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{qty_rejected}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="942" y="0" width="45" height="16" uuid="41ae47e9-cdf3-5ea6-83fd-fa1628974bda"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{carton_number}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="987" y="0" width="58" height="16" uuid="7ecaf5ca-421c-5081-a8c2-4bc9e3c94a94"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{invoice_number}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0.00">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1045" y="0" width="45" height="16" uuid="6b63aa79-ac5d-5537-82d9-bf5ffbf11d51"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{unit_price}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0.00">
+				<reportElement style="Zebra" stretchType="RelativeToTallestObject" x="1090" y="0" width="60" height="16" uuid="18fecc9e-25a5-5374-9b3d-63d1591c8a7b"/>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[$F{line_value}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="18" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="2" width="990" height="14" forecolor="#444444" uuid="b66198e1-f579-59a0-af13-fd7ae703f170"/>
+				<textElement verticalAlignment="Middle"><font size="7"/></textElement>
+				<text><![CDATA[Lesotho eLMIS - Commodities Received by Delivery Note]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="990" y="2" width="100" height="14" uuid="cab8bc88-b41b-5dd8-818b-bf3bdfca0442"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="1090" y="2" width="60" height="14" uuid="4a64d9c6-5c1e-59f9-bfc4-8ce79c4acc43"/>
+				<textElement verticalAlignment="Middle"><font size="7"/></textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="56" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="796" height="16" backcolor="#E9EDF1" uuid="df68157d-1b19-5613-9a6a-b52233707573">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<text><![CDATA[Total]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement mode="Opaque" backcolor="#E9EDF1" x="796" y="0" width="52" height="16" uuid="d5598edc-218c-5d92-a18a-33afd65b348a">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{SUM_qty_on_delivery_note}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement mode="Opaque" backcolor="#E9EDF1" x="848" y="0" width="52" height="16" uuid="642807ed-0795-5125-81ce-c6469436587f">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{SUM_qty_received}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0">
+				<reportElement mode="Opaque" backcolor="#E9EDF1" x="900" y="0" width="42" height="16" uuid="2ecef8fd-c336-54ce-ab42-e0aca117fba2">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{SUM_qty_rejected}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="942" y="0" width="45" height="16" backcolor="#E9EDF1" uuid="53e10e26-8063-5d7c-bee9-1842af335456">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="987" y="0" width="58" height="16" backcolor="#E9EDF1" uuid="a9331ddc-390e-571b-94e5-dc9f923a6aca">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1045" y="0" width="45" height="16" backcolor="#E9EDF1" uuid="26b3b196-aa6c-5326-b2a3-c66d2d3668b1">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true" pattern="#,##0.00">
+				<reportElement mode="Opaque" backcolor="#E9EDF1" x="1090" y="0" width="60" height="16" uuid="90251819-1a54-5b01-8058-17334407c328">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<box topPadding="2" leftPadding="3" bottomPadding="2" rightPadding="3"><pen lineWidth="0.5" lineColor="#A6ADB4"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"><font size="7" isBold="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{SUM_line_value}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="18" width="1150" height="14" uuid="4b1b65d9-42f7-517a-9a29-57a83fa8b6a9">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() > 0]]></printWhenExpression>
+				</reportElement>
+				<textElement verticalAlignment="Middle"><font size="7" isItalic="true"/></textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT} + ($V{REPORT_COUNT}.intValue() == 1 ? " row" : " rows")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="20" width="1150" height="30" uuid="29419a09-0034-5cdb-9c02-03f00258be71">
+					<printWhenExpression><![CDATA[$V{REPORT_COUNT}.intValue() == 0]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+				<text><![CDATA[There is no data for the selected filters.]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>
